@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.5</TargetFramework>
+    <RootNamespace>HQ</RootNamespace>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>QuiCM</Authors>
+    <Company />
+    <Description>A library for defining and running commands concurrently.</Description>
+    <RepositoryUrl>https://github.com/QuiCM/Headquarters</RepositoryUrl>
+    <Copyright>2017</Copyright>
+    <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\Release\netstandard1.5\Headquarters.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+    <PackageReference Include="System.ComponentModel.TypeConverter" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+  </ItemGroup>
+
+</Project>
