@@ -45,7 +45,8 @@ namespace HQ
         /// <summary>
         /// Generates a new CommandQueue with the given CancellationToken
         /// </summary>
-        /// <param name="token"></param>
+        /// <param name="registry"></param>
+        /// <param name="tokenSource"></param>
         public CommandQueue(CommandRegistry registry, CancellationTokenSource tokenSource)
         {
             _registry = registry;
@@ -118,17 +119,15 @@ namespace HQ
         {
             while (!_tokenSource.Token.IsCancellationRequested)
             {
-                //Wait for a bit
+                //Check if the MRE has been set
                 if (!_mre.WaitOne(100))
                 {
-                    //if we timed out, spin again
                     continue;
                 }
 
                 if (!_queue.TryDequeue(out QueueData data))
                 {
-                    //If we fail to retrieve any input, spin again
-                    _mre.Set();
+                    _mre.Reset();
                     continue;
                 }
 
