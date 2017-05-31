@@ -1,6 +1,8 @@
 # Headquarters
 A C# Library for creating and running commands concurrently.
 
+Available on [NuGet](https://www.nuget.org/packages/Headquarters)
+
 
 ## Basics
 
