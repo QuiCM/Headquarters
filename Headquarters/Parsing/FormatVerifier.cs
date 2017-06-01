@@ -34,7 +34,7 @@ namespace HQ.Parsing
     /// <summary>
     /// Ensures a command class and its components conform to a set of rules.
     /// </summary>
-    public class FormatVerifier : IFormatVerifier
+    public class FormatVerifier
     {
         private Type _type;
         private MethodInfo _executor;
