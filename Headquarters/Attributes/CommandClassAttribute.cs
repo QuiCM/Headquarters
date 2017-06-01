@@ -8,19 +8,18 @@ namespace HQ.Attributes
 	/// </summary>
     public class CommandClassAttribute : Attribute
     {
-		/// <summary>
-		/// Whether or not the command object will be cached and reused between executions.
-		/// Defaults to true
-		/// </summary>
-		public bool CacheMetadata { get; } = true;
+        /// <summary>
+        /// Whether or not the command should be executed asynchronously
+        /// </summary>
+        public bool AsyncExecution { get; set; }
 
 		/// <summary>
-		/// Decorates a class containing commands, and optionally sets the metadata caching rule
+		/// Decorates a class containing commands, and optionally tells the parser to execute the command asynchronously
 		/// </summary>
-		/// <param name="cacheMetadata"></param>
-		public CommandClassAttribute(bool cacheMetadata = true)
+		/// <param name="asynchronous">Whether or not the command should be executed asynchronously</param>
+		public CommandClassAttribute(bool asynchronous = false)
 		{
-			CacheMetadata = cacheMetadata;
+            AsyncExecution = asynchronous;
 		}
     }
 }

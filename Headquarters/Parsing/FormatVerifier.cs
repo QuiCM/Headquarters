@@ -5,6 +5,7 @@ using System.Linq;
 using HQ.Exceptions;
 using HQ.Interfaces;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HQ.Parsing
 {
@@ -41,7 +42,7 @@ namespace HQ.Parsing
         private ParameterInfo[] _parameters;
         private Dictionary<ParameterInfo, CommandParameterAttribute> _parameterMetadata;
         private int _requiredArgumentCount;
-        private bool _useCaching;
+        private bool _async;
 
         private CommandMetadata _commandMetadata;
 
@@ -75,7 +76,8 @@ namespace HQ.Parsing
                 ExecutingMethod = _executor,
                 RequiredArguments = _requiredArgumentCount,
                 ParameterData = _parameterMetadata,
-                SubcommandMetadata = new List<CommandMetadata>()
+                SubcommandMetadata = new List<CommandMetadata>(),
+                 AsyncExecution = _async
             };
 
             CheckSubExecutorMethodStructures();
@@ -95,8 +97,7 @@ namespace HQ.Parsing
                     ParserFailReason.IncorrectType,
                     $"Command '{_type.Name}' does not display a '{nameof(CommandClassAttribute)}'");
             }
-
-            _useCaching = attr.CacheMetadata;
+            _async = attr.AsyncExecution;
         }
 
         /// <summary>
@@ -119,6 +120,14 @@ namespace HQ.Parsing
                     e
                 );
             }
+
+            if (_async && _executor.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() == null)
+            {
+                throw new CommandParsingException(
+                    ParserFailReason.MalformedExecutor,
+                    $"'{_type.Name}' claims to have an async executor, but does not declare the 'async' keyword."
+                );
+            }
         }
 
         /// <summary>
@@ -127,12 +136,25 @@ namespace HQ.Parsing
         /// <exception cref="CommandParsingException">Thrown if the executor does not follow command executor method rules</exception>
         public void CheckMethodStructure(MethodInfo method)
         {
-            if (method.ReturnType != typeof(object))
+            if (!_async)
             {
-                throw new CommandParsingException(
-                    ParserFailReason.MalformedExecutor,
-                    $"Executor method '{method.Name}' of command '{_type.Name}' does not return '{nameof(Object)}'."
-                );
+                if (method.ReturnType != typeof(object))
+                {
+                    throw new CommandParsingException(
+                        ParserFailReason.MalformedExecutor,
+                        $"Executor method '{method.Name}' of command '{_type.Name}' does not return '{nameof(Object)}'."
+                    );
+                }
+            }
+            else
+            {
+                if (method.ReturnType != typeof(Task<object>))
+                {
+                    throw new CommandParsingException(
+                           ParserFailReason.MalformedExecutor,
+                           $"Executor method '{method.Name}' of command '{_type.Name}' does not return '{nameof(Task<object>)}'."
+                       );
+                }
             }
 
             _parameters = method.GetParameters();

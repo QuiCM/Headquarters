@@ -13,6 +13,10 @@ namespace HQ
     public class CommandMetadata
     {
         /// <summary>
+        /// Whether or not the command should be run asynchronously
+        /// </summary>
+        public bool AsyncExecution { get; internal set; }
+        /// <summary>
         /// The method that will be called when the command is executed
         /// </summary>
         public MethodInfo ExecutingMethod { get; internal set; }

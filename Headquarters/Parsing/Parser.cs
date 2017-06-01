@@ -13,25 +13,8 @@ namespace HQ.Parsing
     /// <summary>
     /// Responsible for parsing input into types required by a command, then executing the command
     /// </summary>
-    public class Parser
+    public class Parser : AbstractParser
     {
-        private IEnumerable<object> _args;
-        private CommandMetadata _metadata;
-        private IContextObject _context;
-        private int _id;
-        private CommandRegistry _registry;
-        private List<Object> _objects;
-
-        /// <summary>
-        /// The output of the executed command. Null until execution completes
-        /// </summary>
-        public object Output { get; private set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public event EventHandler<InputResultEventArgs> OnProcessingComplete;
-
         /// <summary>
         /// Generates a new parser that uses the given registry, args, metadata, context, and ID to run
         /// </summary>
@@ -39,85 +22,89 @@ namespace HQ.Parsing
         /// <param name="args">Enumerable of objects to be parsed</param>
         /// <param name="metadata">CommandMetadata containing information used to parse and execute</param>
         /// <param name="ctx">Context object passed to the executed command, and an <see cref="IObjectConverter"/>s that are used</param>
-        /// <param name="id">The unique ID generated when input was received by a <see cref="CommandQueue"/></param>
-        public Parser(CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, int id)
+        /// <param name="callback">Reference to a method used as a callback when processing completes</param>
+        public Parser(CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, InputResultDelegate callback)
+            : base(registry, args, metadata, ctx, callback)
         {
-            _registry = registry;
-            _args = args;
-            _metadata = metadata;
-            _context = ctx;
-            _id = id;
         }
 
         /// <summary>
         /// Returns the thread on which the parser will run
         /// </summary>
         /// <returns></returns>
-        public Thread GetThread()
+        public override Thread GetThread()
         {
             //Run the executor thread
-            return new Thread(() => ParserThreadCallback());
+            return new Thread(() => ThreadCallback());
+        }
+
+        /// <summary>
+        /// Begins the processing of the parser
+        /// </summary>
+        public override void Start()
+        {
+            GetThread().Start();
         }
 
         /// <summary>
         /// Runs the parser operations
         /// </summary>
-        private void ParserThreadCallback()
+        protected override void ThreadCallback()
         {
             try
             {
                 CheckBasicArgumentRules();
                 AttemptSwitchToSubcommand();
-                ConvertArgumentsToTypes(_context);
+                ConvertArgumentsToTypes(Context);
 
-                object command = Activator.CreateInstance(_metadata.Type);
-                Output = _metadata.ExecutingMethod.Invoke(command, _objects.ToArray());
-
-                OnProcessingComplete?.Invoke(this, new InputResultEventArgs(InputResult.Success, Output, _id));
+                object command = Activator.CreateInstance(Metadata.Type);
+                Output = Metadata.ExecutingMethod.Invoke(command, Objects.ToArray());
+                Callback?.Invoke(InputResult.Success, Output);
             }
             catch (Exception e)
             {
-                OnProcessingComplete?.Invoke(this, new InputResultEventArgs(InputResult.Failure, e, _id));
+                Output = e;
+                Callback?.Invoke(InputResult.Failure, Output);
             }
         }
 
         /// <summary>
         /// Ensures that the arguments provided meet basic rules in order to be used with the metadata provided
         /// </summary>
-        private void CheckBasicArgumentRules()
+        protected override void CheckBasicArgumentRules()
         {
-            if (_args == null)
+            if (Args == null)
             {
                 throw new CommandParsingException(ParserFailReason.InvalidArguments, "Null was provided as arguments.");
             }
 
-            if (_args.Count() < _metadata.RequiredArguments)
+            if (Args.Count() < Metadata.RequiredArguments)
             {
-                throw new CommandParsingException(ParserFailReason.InvalidArguments, $"Insufficient arguments provided. Expected {_metadata.RequiredArguments} but received {_args.Count()}.");
+                throw new CommandParsingException(ParserFailReason.InvalidArguments, $"Insufficient arguments provided. Expected {Metadata.RequiredArguments} but received {Args.Count()}.");
             }
         }
 
         /// <summary>
         /// Attempts to switch to a subcommand instead of the main executor
         /// </summary>
-        private void AttemptSwitchToSubcommand()
+        protected override void AttemptSwitchToSubcommand()
         {
-            if (!_metadata.HasSubcommands || _args.Count() == 0)
+            if (!Metadata.HasSubcommands || Args.Count() == 0)
             {
                 return;
             }
 
-            CommandMetadata subcommand = _metadata.SubcommandMetadata.FirstOrDefault(
+            CommandMetadata subcommand = Metadata.SubcommandMetadata.FirstOrDefault(
                 c => c.Aliases.Any(
-                    a => a.Matches(_args.First().ToString().ToLowerInvariant())
+                    a => a.Matches(Args.First().ToString().ToLowerInvariant())
                 )
             );
 
             if (subcommand != null)
             {
-                _metadata = subcommand;
+                Metadata = subcommand;
                 //Remove the subcommand name
-                _args = _args.Skip(1);
+                Args = Args.Skip(1);
             }
         }
 
@@ -125,39 +112,39 @@ namespace HQ.Parsing
         /// Attempts to convert the arguments provided into objects of types required by the command executor
         /// </summary>
         /// <param name="ctx"></param>
-        private void ConvertArgumentsToTypes(IContextObject ctx)
+        protected override void ConvertArgumentsToTypes(IContextObject ctx)
         {
-            _objects = new List<object>() { ctx };
+            Objects = new List<object>() { ctx };
             int index = 0;
 
-            foreach (KeyValuePair<ParameterInfo, CommandParameterAttribute> kvp in _metadata.ParameterData)
+            foreach (KeyValuePair<ParameterInfo, CommandParameterAttribute> kvp in Metadata.ParameterData)
             {
                 //Get the number of arguments going in to the parameter
-                int count = kvp.Value.Repetitions <= 0 ? _args.Count() - index
+                int count = kvp.Value.Repetitions <= 0 ? Args.Count() - index
                                                         : kvp.Value.Repetitions;
 
-                if (index >= _args.Count())
+                if (index >= Args.Count())
                 {
                     //If we've used all our arguments, just add empty ones to satisfy the
                     //method signature for the command
-                    _objects.Add(ObjectCreator.CreateDefaultObject(kvp.Key));
+                    Objects.Add(ObjectCreator.CreateDefaultObject(kvp.Key));
                     continue;
                 }
 
-                object[] args = _args.ReadToArray(index, count);
+                object[] args = Args.ReadToArray(index, count);
 
                 //If the provided object is already of the required type, add and continue
                 if (count == 1 && args[0].GetType() == kvp.Key.ParameterType)
                 {
-                    _objects.Add(args[0]);
+                    Objects.Add(args[0]);
                     continue;
                 }
 
-                IObjectConverter converter = _registry.GetConverter(kvp.Key.ParameterType);
+                IObjectConverter converter = Registry.GetConverter(kvp.Key.ParameterType);
                 if (converter == null)
                 {
                     //Use the object creator to attempt a conversion
-                    _objects.Add(ObjectCreator.CreateObject(kvp.Key.ParameterType, args, ctx, _registry));
+                    Objects.Add(ObjectCreator.CreateObject(kvp.Key.ParameterType, args, ctx, Registry));
                 }
                 else
                 {
@@ -174,7 +161,7 @@ namespace HQ.Parsing
                         );
                     }
 
-                    _objects.Add(conversion);
+                    Objects.Add(conversion);
                 }
 
                 index += count;

@@ -24,11 +24,8 @@ namespace HQ
     {
         private CommandQueue _queue;
         private ConcurrentDictionary<Type, IObjectConverter> _converters;
-
-        /// <summary>
-        /// Event invoked when an input has been computed and a result returned.
-        /// </summary>
-        public event EventHandler<InputResultEventArgs> OnInputResult;
+        private Type _asyncParser = typeof(AbstractParser);
+        private Type _parser = typeof(Parser);
 
         /// <summary>
         /// A concurrent dictionary with Types as keys, and IObjectConverters to convert those Types as values
@@ -51,6 +48,41 @@ namespace HQ
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Sets the parser to be used when parsing commands. If <paramref name="asyncParser"/> is true, sets the async parser.
+        /// </summary>
+        /// <typeparam name="T">The type of the parser to be used</typeparam>
+        /// <param name="asyncParser">Whether or not the new parser replaces the async parser</param>
+        public void SetParser<T>(bool asyncParser = false) where T : AbstractParser
+        {
+            if (asyncParser)
+            {
+                _asyncParser = typeof(T);
+            }
+            else
+            {
+                _parser = typeof(T);
+            }
+        }
+
+        /// <summary>
+        /// Returns a parser object.
+        /// </summary>
+        /// <param name="async">Whether or not the async parser is required</param>
+        /// <param name="registry">Registry to be used by the parser</param>
+        /// <param name="args">Arguments to be used by the parser</param>
+        /// <param name="metadata">Metadata to be used by the parser</param>
+        /// <param name="ctx">Context to be used by the parser</param>
+        /// <param name="callback">Callback method to be invoked when the parser completes</param>
+        public AbstractParser GetParser(bool async, CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, InputResultDelegate callback)
+        {
+            if (async)
+            {
+                return (AbstractParser)Activator.CreateInstance(_asyncParser, registry, args, metadata, ctx, callback);
+            }
+            return (AbstractParser)Activator.CreateInstance(_parser, registry, args, metadata, ctx, callback);
         }
 
         /// <summary>
@@ -80,11 +112,18 @@ namespace HQ
             _queue.BeginProcessing();
         }
 
-        public int HandleInput(string input, IContextObject ctx)
+        /// <summary>
+        /// Queues an input for handling, returning a unique ID with which to obtain results
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="ctx"></param>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        public void HandleInput(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
 
-            return _queue.QueueInputHandling(input, ctx);
+            _queue.QueueInputHandling(input, ctx, callback);
         }
 
         /// <summary>
@@ -93,7 +132,6 @@ namespace HQ
         /// <param name="type"></param>
         /// <param name="names"></param>
         /// <param name="description"></param>
-        /// <exception cref="CommandParsingException">Thrown if the verifier fails when checking the given Type</exception>
         public CommandRegistry AddCommand(Type type, IEnumerable<RegexString> names, string description)
         {
             ThrowIfDisposed();
@@ -107,11 +145,6 @@ namespace HQ
             _queue.AddMetadata(metadata);
 
             return this;
-        }
-
-        internal void Invoke_InputResult(InputResult result, object output, int id)
-        {
-            OnInputResult?.Invoke(this, new InputResultEventArgs(result, output, id));
         }
 
         #region IDisposable Support

@@ -17,13 +17,13 @@ namespace HQ
         internal class QueueData
         {
             internal string Input { get; }
-            internal int ID { get; }
+            internal InputResultDelegate Callback { get; }
             internal IContextObject Context { get; }
 
-            internal QueueData(string input, int id, IContextObject ctx)
+            internal QueueData(string input, InputResultDelegate callback, IContextObject ctx)
             {
                 Input = input;
-                ID = id;
+                Callback = callback;
                 Context = ctx;
             }
         }
@@ -93,16 +93,13 @@ namespace HQ
         /// <summary>
         /// Adds a command to the command queue, ready to be executed
         /// </summary>
-        public int QueueInputHandling(string input, IContextObject ctx)
+        public void QueueInputHandling(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
-            int id = Interlocked.Increment(ref _id);
-            _queue.Enqueue(new QueueData(input, id, ctx));
+            _queue.Enqueue(new QueueData(input, callback, ctx));
 
             //Set the MRE so that our parser thread knows there's data
             _mre.Set();
-
-            return id;
         }
 
         /// <summary>
@@ -138,7 +135,7 @@ namespace HQ
                 {
                     //If we have a piped command, send it off to a new thread to be handled,
                     //As each command needs to be handled in order
-                    Thread pipeThread = new Thread(() => PipeThreadCallback(inputs, data.ID, data.Context));
+                    Thread pipeThread = new Thread(() => PipeThreadCallback(inputs, data.Callback, data.Context));
                     pipeThread.Start();
                     _mre.Set();
                     continue;
@@ -155,7 +152,7 @@ namespace HQ
 
                 if (metadatas.Count == 0)
                 {
-                    _registry.Invoke_InputResult(InputResult.Unhandled, null, data.ID);
+                    data.Callback.Invoke(InputResult.Unhandled, null);
 
                     //No command matches, so ignore this input
                     _mre.Set();
@@ -165,13 +162,13 @@ namespace HQ
                 RegexString trigger = metadatas.FirstOrDefault().Aliases.FirstOrDefault();
                 input = trigger.RemoveMatchedString(input);
                 IEnumerable<object> arguments = input.ObjectiveExplode();
-
-                Parser parser = new Parser(_registry, arguments, metadatas.First(), data.Context, data.ID);
-                parser.OnProcessingComplete += Parser_OnProcessingComplete;
+                CommandMetadata metadata = metadatas.First();
+                
+                AbstractParser parser = _registry.GetParser(metadata.AsyncExecution, _registry, arguments, metadatas.First(), data.Context, data.Callback);
 
                 try
                 {
-                    parser.GetThread().Start();
+                    parser.Start();
                 }
                 finally
                 {
@@ -183,7 +180,7 @@ namespace HQ
             _mre.Dispose();
         }
 
-        private void PipeThreadCallback(string[] inputs, int id, IContextObject ctx)
+        private void PipeThreadCallback(string[] inputs, InputResultDelegate callback, IContextObject ctx)
         {
             object output = null;
 
@@ -200,25 +197,30 @@ namespace HQ
                 if (metadatas.Count == 0)
                 {
                     //No command matches, so ignore this entire piped input
-                    _registry.Invoke_InputResult(InputResult.Unhandled, null, id);
+                    callback.Invoke(InputResult.Unhandled, null);
                     break;
                 }
 
                 RegexString trigger = metadatas.FirstOrDefault().Aliases.FirstOrDefault();
                 input = trigger.RemoveMatchedString(input);
                 IEnumerable<object> arguments = input.ObjectiveExplode();
+                CommandMetadata metadata = metadatas.First();
                 if (output != null)
                 {
                     //If there's output from a previous command, append it to the arguments for this command
                     arguments = arguments.Concat(new[] { output });
                 }
 
-                Parser parser = new Parser(_registry, arguments, metadatas.First(), ctx, id);
+                AbstractParser parser;
 
                 if (i == inputs.Length - 1)
                 {
                     //We only want the final parsing to invoke the parser callback
-                    parser.OnProcessingComplete += Parser_OnProcessingComplete;
+                    parser = _registry.GetParser(metadata.AsyncExecution, _registry, arguments, metadata, ctx, callback);
+                }
+                else
+                {
+                    parser = _registry.GetParser(metadata.AsyncExecution, _registry, arguments, metadata, ctx, null);
                 }
 
                 //Threads are joined for synchronous behaviour. Concurrency will not work here
@@ -229,11 +231,6 @@ namespace HQ
                 //Set output so that it's appended to the end of the next input
                 output = parser.Output;
             }
-        }
-
-        private void Parser_OnProcessingComplete(object sender, InputResultEventArgs e)
-        {
-            _registry.Invoke_InputResult(e.Result, e.Output, e.ID);
         }
 
         #region IDisposable Support
