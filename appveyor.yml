@@ -8,7 +8,6 @@ artifacts:
   - path: '**\*.nupkg'
 cache:
   - packages -> **\packages.config
-  - '%LocalAppData%\NuGet\v3-cache
 build_script:
 - cmd: >-
     dotnet restore
