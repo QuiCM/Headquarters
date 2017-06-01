@@ -3,7 +3,7 @@ pull_requests:
   do_not_increment_build_number: true
 build:
   verbosity: minimal
-  public_nuget: true
+  publish_nuget: true
 artifacts:
   - path: '**\*.nupkg'
 cache:
