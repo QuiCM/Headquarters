@@ -1,5 +1,6 @@
-# Headquarters
+# Headquarters [![Build status](https://ci.appveyor.com/api/projects/status/vf5m4027llet9l2a?svg=true)](https://ci.appveyor.com/project/QuiCM/headquarters) 
 A C# Library for creating and running commands concurrently.
+
 
 Available on [NuGet](https://www.nuget.org/packages/Headquarters)
 
