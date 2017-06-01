@@ -8,4 +8,5 @@ cache:
 build_script:
 - cmd: >-
     dotnet restore
+
     dotnet build
