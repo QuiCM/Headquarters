@@ -3,8 +3,12 @@ pull_requests:
   do_not_increment_build_number: true
 build:
   verbosity: minimal
+  public_nuget: true
+artifacts:
+  - path: '**\*.nupkg'
 cache:
   - packages -> **\packages.config
+  - '%LocalAppData%\NuGet\v3-cache
 build_script:
 - cmd: >-
     dotnet restore
@@ -13,3 +17,4 @@ build_script:
 branches:
   only:
   - master
+skip_non_tags: true
