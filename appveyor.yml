@@ -14,7 +14,7 @@ build_script:
     dotnet restore
 
     dotnet build
-branches:
-  only:
-  - master
-skip_non_tags: true
+#branches:
+#  only:
+#  - master
+#skip_non_tags: true
