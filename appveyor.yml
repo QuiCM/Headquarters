@@ -4,8 +4,9 @@ pull_requests:
 build:
   verbosity: minimal
   publish_nuget: true
-artifacts:
-  - path: '**\*.nupkg'
+#artifacts:
+#  - path: '**\*.nupkg'
+#    name: Nuget Package
 cache:
   - packages -> **\packages.config
 build_script:
