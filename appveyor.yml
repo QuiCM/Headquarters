@@ -20,7 +20,7 @@ deploy:
   skip_symbols: false
   artifact: /.*\.nupkg/
 
-#branches:
-#  only:
-#  - master
-#skip_non_tags: true
+branches:
+  only:
+  - master
+skip_non_tags: true
