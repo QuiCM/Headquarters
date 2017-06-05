@@ -29,7 +29,6 @@ namespace HQ.Parsing
         /// <summary>
         /// Creates a default object for the given type
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="type"></param>
         /// <returns></returns>
         public static object CreateDefaultObject(Type type)
@@ -49,6 +48,7 @@ namespace HQ.Parsing
         /// <param name="type"></param>
         /// <param name="arguments"></param>
         /// <param name="ctx"></param>
+        /// <param name="registry"></param>
         /// <returns></returns>
         public static object CreateObject(Type type, object[] arguments, IContextObject ctx, CommandRegistry registry)
         {
@@ -106,7 +106,7 @@ namespace HQ.Parsing
         /// <param name="type"></param>
         /// <param name="arguments"></param>
         /// <param name="ctx"></param>
-        /// <param name="converter"></param>
+        /// <param name="registry"></param>
         /// <returns></returns>
         public static object CreateArray(Type type, object[] arguments, IContextObject ctx, CommandRegistry registry)
         {

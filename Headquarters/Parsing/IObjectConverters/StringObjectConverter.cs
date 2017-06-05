@@ -1,7 +1,7 @@
 ﻿using HQ.Interfaces;
 using System;
 
-namespace HQ.ObjectConverters
+namespace HQ.Parsing.IObjectConverters
 {
     public sealed class StringObjectConverter : IObjectConverter
     {

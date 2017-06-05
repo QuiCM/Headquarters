@@ -40,8 +40,6 @@ namespace HQ
 
         private bool _started = false;
 
-        private int _id = 0;
-
         /// <summary>
         /// Generates a new CommandQueue with the given CancellationToken
         /// </summary>
@@ -244,6 +242,10 @@ namespace HQ
             }
         }
 
+        /// <summary>
+        /// Implements the IDisposable pattern
+        /// </summary>
+        /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -257,6 +259,9 @@ namespace HQ
             }
         }
 
+        /// <summary>
+        /// Disposes the queue, stopping processing and releasing resources. A stopped queue cannot be restarted
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

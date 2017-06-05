@@ -16,10 +16,10 @@ namespace HQ.Attributes
         public IEnumerable<RegexString> SubCommands { get; }
 
         /// <summary>
-        /// Creates a new <see cref="CommandSubExecutorAttribute"/> with the given <see cref="RegexString"/> phrases
+        /// Creates a new <see cref="SubcommandExecutorAttribute"/> with the given <see cref="RegexString"/> phrases
         /// </summary>
         /// <param name="subCmd"></param>
-        /// <param param name="subCmds"></param>
+        /// <param name="subCmds"></param>
         public SubcommandExecutorAttribute(RegexString subCmd, params RegexString[] subCmds)
         {
             List<RegexString> subs = new List<RegexString>() { subCmd };
@@ -28,7 +28,7 @@ namespace HQ.Attributes
         }
 
         /// <summary>
-        /// Creates a new <see cref="CommandSubExecutorAttribute"/> with the given phrases
+        /// Creates a new <see cref="SubcommandExecutorAttribute"/> with the given phrases
         /// </summary>
         /// <param name="subCmd"></param>
         /// <param name="subCmds"></param>
