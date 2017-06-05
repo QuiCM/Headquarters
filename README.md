@@ -52,15 +52,15 @@ public class ExampleApplication
     {
       registry.AddCommand(typeof(ExampleCommand), new RegexString[] { "example" }, "An example command!");
       
-      registry.HandleInput("example", context); //handle the input 'example', which will invoke the 'example' command
+      registry.HandleInput("example", context, CommandCallback); //handle the input 'example', which will invoke the 'example' command
     }
   }
 }
 ```
 
 #### Receiving command output
-When you ask the library to handle an input, you are provided with a unique ID.
-When the library finishes handling an input, it invokes the `OnInputResult` event. The event data contains the result of the parsing (`InputResult` enum), the unique ID tied to the input, and the output from the input.
+When you ask the library to handle an input, you also provide a callback method.
+When the library finishes handling an input, it invokes the callback, providing an InputResult enum detailing the result of the processing, and an object returned by the command.
 ```
 [CommandClass]
 public class ExampleCommand
@@ -74,8 +74,6 @@ public class ExampleCommand
 
 public class ExampleApplication
 {
-  static int handleId;
-  
   public static void Main(string[] args)
   {
     IContextObject context = null; //null is used in this example
@@ -83,19 +81,14 @@ public class ExampleApplication
     using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
     {
       registry.AddCommand(typeof(ExampleCommand), new RegexString[] { "example" }, "An example command!");
-      registry.OnInputResult += Registry_OnInputResult;
       
-      handleId = registry.HandleInput("example", context); //handle the input 'example', which will invoke the 'example' command
+      registry.HandleInput("example", context, CommandCallback); //handle the input 'example', which will invoke the 'example' command
     }
   }
-  
-  private static void Registry_OnInputResult(object sender, InputResultEventArgs e)
+
+  private static void CommandCallback(InputResult result, object output)
   {
-    if (e.ID == handleId)
-    {
-      Console.WriteLine($"ID: {e.ID} - Result: {e.Result} - Output: {e.Output}"); //ID: 1 - Result: Success - Output: Hello world!
-    }
+      Console.WriteLine($"Result: {result} - Output: {output}"); //Result: Success - Output: Hello world!
   }
 }
 ```
-
