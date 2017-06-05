@@ -53,6 +53,12 @@ namespace HQ.Exceptions
         /// </summary>
         public ParserFailReason FailReason { get; }
 
+        /// <summary>
+        /// Generates a new CommandParsingException with the given fail reason, message, and optional inner exception
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        /// <param name="innerException"></param>
         public CommandParsingException(ParserFailReason type, string message, Exception innerException = null)
             : base(message, innerException)
         {

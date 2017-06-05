@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace HQ.Extensions
 {
+    /// <summary>
+    /// Extension class providing extensions for IEnumerables
+    /// </summary>
     public static class IEnumerableExtensions
     {
         /// <summary>

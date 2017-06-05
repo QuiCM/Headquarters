@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using HQ.Extensions;
 
-namespace HQ.ObjectConverters
+namespace HQ.Parsing.IObjectConverters
 {
     public class IntArrayObjectConverter : IObjectConverter
     {

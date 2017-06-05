@@ -1,5 +1,5 @@
 ﻿using HQ.Interfaces;
-using HQ.ObjectConverters;
+using HQ.Parsing.IObjectConverters;
 using HQ.Parsing;
 using System;
 using System.Collections.Concurrent;
@@ -18,7 +18,8 @@ namespace HQ
     */
 
     /// <summary>
-    /// Responsible for command registrations and beginning the command execution process
+    /// The main point of control for the Headquarters library.
+    /// A CommandRegistry provides methods to register commands, converters, and parsers, as well as providing input.
     /// </summary>
     public class CommandRegistry : IDisposable
     {
@@ -30,7 +31,14 @@ namespace HQ
         /// <summary>
         /// A concurrent dictionary with Types as keys, and IObjectConverters to convert those Types as values
         /// </summary>
-        public ConcurrentDictionary<Type, IObjectConverter> Converters => _converters;
+        public ConcurrentDictionary<Type, IObjectConverter> Converters
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return _converters;
+            }
+        }
 
         /// <summary>
         /// Gets an IObjectConverter for the given type
@@ -57,6 +65,7 @@ namespace HQ
         /// <param name="asyncParser">Whether or not the new parser replaces the async parser</param>
         public void SetParser<T>(bool asyncParser = false) where T : AbstractParser
         {
+            ThrowIfDisposed();
             if (asyncParser)
             {
                 _asyncParser = typeof(T);
@@ -78,6 +87,7 @@ namespace HQ
         /// <param name="callback">Callback method to be invoked when the parser completes</param>
         public AbstractParser GetParser(bool async, CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, InputResultDelegate callback)
         {
+            ThrowIfDisposed();
             if (async)
             {
                 return (AbstractParser)Activator.CreateInstance(_asyncParser, registry, args, metadata, ctx, callback);
@@ -158,6 +168,10 @@ namespace HQ
             }
         }
 
+        /// <summary>
+        /// Implements the IDisposable pattern
+        /// </summary>
+        /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -171,11 +185,12 @@ namespace HQ
                 disposedValue = true;
             }
         }
-
-        // This code added to correctly implement the disposable pattern.
+        
+        /// <summary>
+        /// Disposes the registry and the underlying <see cref="CommandQueue"/>. A disposed registry cannot be reused.
+        /// </summary>
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
         }
         #endregion
