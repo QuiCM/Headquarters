@@ -4,8 +4,21 @@ A C# Library for creating and running commands concurrently.
 
 Available on [NuGet](https://www.nuget.org/packages/Headquarters)
 
+## Building
 
-## Basics
+Headquarters targets the .NET Standard 1.5 framework and is built using Visual Studio 2017. It requires:
+* NETStandard.Library >= 1.6.1
+* Newtonsoft.Json >= 10.0.2
+* System.ComponentModel.TypeConverter >= 4.3.0
+* System.Threading.Thread >= 4.3.0
+
+All of which are available on NuGet.
+
+You will also need [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/get-started) installed.
+
+To build, run `dotnet restore` followed by `dotnet build` in the base directory.
+
+## Basic Use
 
 #### Creating a command
 Creating a command requires a class with the `[CommandClass]` attribute, and one method with a `[CommandExecutor]` attribute and a first parameter that inherits `IContextObject`:
