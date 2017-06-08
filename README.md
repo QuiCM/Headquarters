@@ -23,7 +23,7 @@ To build, run `dotnet restore` followed by `dotnet build` in the base directory.
 #### Creating a command
 Creating a command requires a class with the `[CommandClass]` attribute, and one method with a `[CommandExecutor]` attribute and a first parameter that inherits `IContextObject`:
 
-```
+```csharp
 [CommandClass]
 public class ExampleCommand
 {
@@ -38,7 +38,7 @@ public class ExampleCommand
 #### Registering a command
 Once you have a command created, you can register it with the library so that it may be used.
 The command registering method takes 3 parameters: the command's type, an `IEnumerable<RegexString>` containing command aliases, and a description string:
-```
+```csharp
 public class ExampleApplication
 {
   public static void Main(string[] args)
@@ -54,7 +54,7 @@ public class ExampleApplication
 #### Running a command
 With a command created and registered, you can send input into the library to be parsed.
 Input can be sent in with a context object that will be passed to the command. If no context is required, `null` is acceptable:
-```
+```csharp
 public class ExampleApplication
 {
   public static void Main(string[] args)
@@ -74,7 +74,7 @@ public class ExampleApplication
 #### Receiving command output
 When you ask the library to handle an input, you also provide a callback method.
 When the library finishes handling an input, it invokes the callback, providing an InputResult enum detailing the result of the processing, and an object returned by the command.
-```
+```csharp
 [CommandClass]
 public class ExampleCommand
 {
