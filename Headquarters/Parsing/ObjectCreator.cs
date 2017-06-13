@@ -27,6 +27,16 @@ namespace HQ.Parsing
         }
 
         /// <summary>
+        /// Creates a default object of the given type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static object CreateDefaultObject<T>()
+        {
+            return CreateDefaultObject(typeof(T));
+        }
+
+        /// <summary>
         /// Creates a default object for the given type
         /// </summary>
         /// <param name="type"></param>
@@ -37,7 +47,7 @@ namespace HQ.Parsing
             {
                 return string.Empty;
             }
-
+            
             return Activator.CreateInstance(type);
         }
 
