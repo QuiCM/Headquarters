@@ -36,7 +36,7 @@ deploy:
 
 branches:
   only:
-    - /v\d\.\d\.\d/
+    - /v(\d(\.\d)*)+(\-?\w)*/
     - dev
   except:
     - master
