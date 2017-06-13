@@ -38,3 +38,4 @@ branches:
   only:
     - /v(\d(\.\d)*)+(\-?\w)*/
     - dev
+    - master
