@@ -1,23 +1,35 @@
 pull_requests:
   do_not_increment_build_number: true
+
 build:
   verbosity: minimal
   publish_nuget: true
+
 artifacts:
   - path: '**\*.nupkg'
+
 cache:
   - packages -> **\packages.config
+
 build_script:
 - cmd: >-
     dotnet restore
 
     dotnet build
+
 deploy:
 - provider: NuGet
+  artifact: /.*\.nupkg/
   api_key:
     secure: 96GhxtmD79trmOMd7lU5p1fzp/ZGfZHTFSyxjP4CvUf5dc3zMEdZ1ztxjF5Pue6L
   on:
-    branch: master
-  artifact: /.*\.nupkg/
+    appveyor_repo_tag: true        #Deploy when a tag is created
 
-skip_non_tags: true
+- provider: GitHub
+  auth_token:
+    secure: w8xF9WgSrM+9hFP/cCMntf2nwcOm90y2oXtA/Tnd9DGdUHM2z+rDSYTFWk2fmimW
+  release: 'Headquarters $(appveyor_repo_tag_name)'
+  description: 'Headquarters Release v$(appveyor_repo_tag_name). View commits for this release [here](https://github.com/QuiCM/Headquarters/commits/$(appveyor_repo_tag_name))'
+  artifact: /**\*.nupkg/ 
+  on:
+    appveyor_repo_tag: true        #Deploy when a tag is created
