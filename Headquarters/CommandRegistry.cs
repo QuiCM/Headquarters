@@ -107,7 +107,6 @@ namespace HQ
                 _converters.TryAdd(typeof(int[]), new IntArrayObjectConverter());
                 _converters.TryAdd(typeof(int), new IntObjectConverter());
                 _converters.TryAdd(typeof(string[]), new StringArrayObjectConverter());
-                _converters.TryAdd(typeof(string), new StringObjectConverter());
             }
 
             if (settings.Converters != null)
