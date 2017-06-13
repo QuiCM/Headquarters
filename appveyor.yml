@@ -25,14 +25,14 @@ deploy:
   on:
     appveyor_repo_tag: true        #Deploy when a tag is created
 
-- provider: GitHub
-  auth_token:
-    secure: w8xF9WgSrM+9hFP/cCMntf2nwcOm90y2oXtA/Tnd9DGdUHM2z+rDSYTFWk2fmimW
-  release: 'Headquarters $(appveyor_repo_tag_name)'
-  description: 'Headquarters Release $(appveyor_repo_tag_name). View commits for this release [here](https://github.com/QuiCM/Headquarters/commits/$(appveyor_repo_tag_name))'
-  artifact: /.*\.nupkg/ 
-  on:
-    appveyor_repo_tag: true        #Deploy when a tag is created
+#- provider: GitHub
+#  auth_token:
+#    secure: w8xF9WgSrM+9hFP/cCMntf2nwcOm90y2oXtA/Tnd9DGdUHM2z+rDSYTFWk2fmimW
+#  release: 'Headquarters $(appveyor_repo_tag_name)'
+#  description: 'Headquarters Release $(appveyor_repo_tag_name). View commits for this release [here](https://github.com/QuiCM/Headquarters/commits/$(appveyor_repo_tag_name))'
+#  artifact: /.*\.nupkg/ 
+#  on:
+#    appveyor_repo_tag: true        #Deploy when a tag is created
 
 branches:
   only:
