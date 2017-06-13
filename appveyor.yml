@@ -33,9 +33,3 @@ deploy:
 #  artifact: /.*\.nupkg/ 
 #  on:
 #    appveyor_repo_tag: true        #Deploy when a tag is created
-
-branches:
-  only:
-    - /v(\d(\.\d)*)+(\-?\w)*/
-    - dev
-    - master
