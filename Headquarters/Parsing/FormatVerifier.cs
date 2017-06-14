@@ -15,7 +15,7 @@ namespace HQ.Parsing
     * 
     * **COMMAND EXECUTOR RULE SET**
     * A method that is considered the main runnable method for a command must be decorated with a CommandExecutorAttribute.
-    * The method must return type Task<Object>.
+    * The method must return type Task<Object> or Object.
     * The method must have at least 1 parameter.
     * The method's first parameter must be castable to type IContextObject.
     * 
