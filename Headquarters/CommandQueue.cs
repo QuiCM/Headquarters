@@ -94,6 +94,12 @@ namespace HQ
         public void QueueInputHandling(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
+
+            if (callback == null)
+            {
+                throw new ArgumentNullException("callback");
+            }
+
             _queue.Enqueue(new QueueData(input, callback, ctx));
 
             //Set the MRE so that our parser thread knows there's data
@@ -162,7 +168,7 @@ namespace HQ
                 IEnumerable<object> arguments = input.ObjectiveExplode();
                 CommandMetadata metadata = metadatas.First();
                 
-                AbstractParser parser = _registry.GetParser(metadata.AsyncExecution, _registry, arguments, metadatas.First(), data.Context, data.Callback);
+                AbstractParser parser = _registry.GetParser( _registry, arguments, metadatas.First(), data.Context, data.Callback);
 
                 try
                 {
@@ -214,11 +220,11 @@ namespace HQ
                 if (i == inputs.Length - 1)
                 {
                     //We only want the final parsing to invoke the parser callback
-                    parser = _registry.GetParser(metadata.AsyncExecution, _registry, arguments, metadata, ctx, callback);
+                    parser = _registry.GetParser(_registry, arguments, metadata, ctx, callback);
                 }
                 else
                 {
-                    parser = _registry.GetParser(metadata.AsyncExecution, _registry, arguments, metadata, ctx, null);
+                    parser = _registry.GetParser(_registry, arguments, metadata, ctx, null);
                 }
 
                 //Threads are joined for synchronous behaviour. Concurrency will not work here

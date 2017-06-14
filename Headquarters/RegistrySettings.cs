@@ -1,4 +1,5 @@
 ﻿using HQ.Interfaces;
+using System;
 using System.Collections.Generic;
 
 namespace HQ
@@ -16,5 +17,9 @@ namespace HQ
         /// Enumerable of <see cref="IObjectConverter"/>s that will be registered for conversions
         /// </summary>
         public IEnumerable<IObjectConverter> Converters { get; set; }
+        /// <summary>
+        /// The type of parser that will be used when parsing input and executing commands
+        /// </summary>
+        public Type Parser { get; set; } = typeof(Parsing.Parser);
     }
 }

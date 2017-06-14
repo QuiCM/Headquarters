@@ -25,7 +25,6 @@ namespace HQ
     {
         private CommandQueue _queue;
         private ConcurrentDictionary<Type, IObjectConverter> _converters;
-        private Type _asyncParser = typeof(AbstractParser);
         private Type _parser = typeof(Parser);
 
         /// <summary>
@@ -59,39 +58,26 @@ namespace HQ
         }
 
         /// <summary>
-        /// Sets the parser to be used when parsing commands. If <paramref name="asyncParser"/> is true, sets the async parser.
+        /// Sets the parser to be used when parsing commands.
         /// </summary>
         /// <typeparam name="T">The type of the parser to be used</typeparam>
-        /// <param name="asyncParser">Whether or not the new parser replaces the async parser</param>
-        public void SetParser<T>(bool asyncParser = false) where T : AbstractParser
+        public void SetParser<T>() where T : AbstractParser
         {
             ThrowIfDisposed();
-            if (asyncParser)
-            {
-                _asyncParser = typeof(T);
-            }
-            else
-            {
-                _parser = typeof(T);
-            }
+            _parser = typeof(T);
         }
 
         /// <summary>
-        /// Returns a parser object.
+        /// Returns an instance of the parser that currently registered.
         /// </summary>
-        /// <param name="async">Whether or not the async parser is required</param>
         /// <param name="registry">Registry to be used by the parser</param>
         /// <param name="args">Arguments to be used by the parser</param>
         /// <param name="metadata">Metadata to be used by the parser</param>
         /// <param name="ctx">Context to be used by the parser</param>
         /// <param name="callback">Callback method to be invoked when the parser completes</param>
-        public AbstractParser GetParser(bool async, CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, InputResultDelegate callback)
+        public AbstractParser GetParser(CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
-            if (async)
-            {
-                return (AbstractParser)Activator.CreateInstance(_asyncParser, registry, args, metadata, ctx, callback);
-            }
             return (AbstractParser)Activator.CreateInstance(_parser, registry, args, metadata, ctx, callback);
         }
 
@@ -116,6 +102,8 @@ namespace HQ
                     _converters.TryAdd(converter.ConversionType, converter);
                 }
             }
+
+            _parser = settings.Parser;
 
             _queue = new CommandQueue(this, new System.Threading.CancellationTokenSource());
             _queue.BeginProcessing();
@@ -184,7 +172,7 @@ namespace HQ
                 disposedValue = true;
             }
         }
-        
+
         /// <summary>
         /// Disposes the registry and the underlying <see cref="CommandQueue"/>. A disposed registry cannot be reused.
         /// </summary>

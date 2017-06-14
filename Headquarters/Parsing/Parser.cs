@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace HQ.Parsing
 {
@@ -59,6 +60,13 @@ namespace HQ.Parsing
 
                 object command = Activator.CreateInstance(Metadata.Type);
                 Output = Metadata.ExecutingMethod.Invoke(command, Objects.ToArray());
+
+                if (Metadata.AsyncExecution)
+                {
+                    Task<object> task = (Task<object>)Output;
+                    Output = task.GetAwaiter().GetResult();
+                }
+
                 Callback?.Invoke(InputResult.Success, Output);
             }
             catch (Exception e)
