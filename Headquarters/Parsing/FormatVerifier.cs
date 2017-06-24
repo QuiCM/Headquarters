@@ -37,11 +37,11 @@ namespace HQ.Parsing
     public class FormatVerifier
     {
         private Type _type;
-        private MethodInfo _executor;
-        private IEnumerable<MethodInfo> _subExecutors;
+        private List<CommandExecutorData> _executors;
+        private List<CommandExecutorData> _subExecutors;
         private ParameterInfo[] _parameters;
         private Dictionary<ParameterInfo, CommandParameterAttribute> _parameterMetadata;
-        private int _requiredArgumentCount;
+        private int requiredArgumentCount;
         private bool _async;
 
         private CommandMetadata _commandMetadata;
@@ -63,24 +63,36 @@ namespace HQ.Parsing
         /// <summary>
         /// Runs the verifier, generating command metadata if the verification succeeds
         /// </summary>
-        public void Run()
+        public FormatVerifier Run()
         {
-            CheckClassAttribute();
-            CheckExecutor();
-            CheckMethodStructure(_executor);
-            CheckParameterStructure(_parameters.Skip(1));
+            VerifyClassAttribute();
+
+            DiscoverExecutors();
+            foreach (CommandExecutorData data in _executors)
+            {
+                ParameterInfo[] parameters = VerifyMethodStructure(data);
+                CheckParameterStructure(data, parameters.Skip(1));
+            }
+
+            DiscoverSubexecutorMethods();
+            foreach (CommandExecutorData data in _subExecutors)
+            {
+                ParameterInfo[] parameters = VerifyMethodStructure(data);
+                CheckParameterStructure(data, parameters.Skip(1));
+            }
+
+            foreach (CommandExecutorData data in _executors)
+            {
+                data.Subcommands = _subExecutors.Where(sub => sub.ParentCommand == data);
+            }
 
             _commandMetadata = new CommandMetadata
             {
-                Type = _type,
-                ExecutingMethod = _executor,
-                RequiredArguments = _requiredArgumentCount,
-                ParameterData = _parameterMetadata,
-                SubcommandMetadata = new List<CommandMetadata>(),
-                 AsyncExecution = _async
+                Executors = _executors,
+                Type = _type
             };
 
-            CheckSubExecutorMethodStructures();
+            return this;
         }
 
         /// <summary>
@@ -88,7 +100,7 @@ namespace HQ.Parsing
         /// </summary>
         /// <returns></returns>
         /// <exception cref="CommandParsingException">Thrown if the class does not conform to command class style rules</exception>
-        public void CheckClassAttribute()
+        public void VerifyClassAttribute()
         {
             CommandClassAttribute attr = _type.GetTypeInfo().GetCustomAttribute<CommandClassAttribute>();
             if (attr == null)
@@ -97,35 +109,27 @@ namespace HQ.Parsing
                     ParserFailReason.IncorrectType,
                     $"Command '{_type.Name}' does not display a '{nameof(CommandClassAttribute)}'");
             }
-            _async = attr.AsyncExecution;
         }
 
         /// <summary>
         /// Ensures that the type has a method with a <see cref="CommandExecutorAttribute"/> decoration
         /// </summary>
         /// <exception cref="CommandParsingException">Thrown if the executor does not follow command executor style rules</exception>
-        public void CheckExecutor()
+        public void DiscoverExecutors()
         {
-            try
-            {
-                _executor = _type.GetRuntimeMethods().First(
-                    m => m.GetCustomAttribute<CommandExecutorAttribute>() != null
-                );
-            }
-            catch (Exception e)
+            _executors = (from methodInfo in _type.GetRuntimeMethods().Where(m => m.GetCustomAttribute<CommandExecutorAttribute>() != null)
+                          select new CommandExecutorData
+                          {
+                              ExecutorAttribute = methodInfo.GetCustomAttribute<CommandExecutorAttribute>(),
+                              ExecutingMethod = methodInfo,
+                              AsyncExecution = methodInfo.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null
+                          }).ToList();
+
+            if (_executors.Count() == 0)
             {
                 throw new CommandParsingException(
                     ParserFailReason.NoExecutorFound,
-                    $"Failed to discover an executor for command '{_type.Name}'.",
-                    e
-                );
-            }
-
-            if (_async && _executor.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() == null)
-            {
-                throw new CommandParsingException(
-                    ParserFailReason.MalformedExecutor,
-                    $"'{_type.Name}' claims to have an async executor, but does not declare the 'async' keyword."
+                    $"Failed to discover an executor for command '{_type.Name}'."
                 );
             }
         }
@@ -134,86 +138,80 @@ namespace HQ.Parsing
         /// Ensures the executing method follows the command executor method rules
         /// </summary>
         /// <exception cref="CommandParsingException">Thrown if the executor does not follow command executor method rules</exception>
-        public void CheckMethodStructure(MethodInfo method)
+        public ParameterInfo[] VerifyMethodStructure(CommandExecutorData data)
         {
-            if (!_async)
+            MethodInfo mInfo = data.ExecutingMethod;
+            if (!data.AsyncExecution)
             {
-                if (method.ReturnType != typeof(object))
+                if (mInfo.ReturnType != typeof(object))
                 {
                     throw new CommandParsingException(
                         ParserFailReason.MalformedExecutor,
-                        $"Executor method '{method.Name}' of command '{_type.Name}' does not return '{nameof(Object)}'."
+                        $"Executor method '{mInfo.Name}' of command '{_type.Name}' does not return '{nameof(Object)}'."
                     );
                 }
             }
             else
             {
-                if (method.ReturnType != typeof(Task<object>))
+                if (mInfo.ReturnType != typeof(Task<object>))
                 {
                     throw new CommandParsingException(
                            ParserFailReason.MalformedExecutor,
-                           $"Executor method '{method.Name}' of command '{_type.Name}' does not return '{nameof(Task<object>)}'."
+                           $"Executor method '{mInfo.Name}' of command '{_type.Name}' does not return '{nameof(Task<object>)}'."
                        );
                 }
             }
 
-            _parameters = method.GetParameters();
+            ParameterInfo[] parameters = mInfo.GetParameters();
             Exception inner = null;
 
-            if (_parameters.Length < 1)
+            if (parameters.Length < 1)
             {
                 inner = new Exception("Method defines no parameters, but requires at least one.");
             }
-            else if (!typeof(IContextObject).GetTypeInfo().IsAssignableFrom(_parameters[0].ParameterType))
+            else if (!typeof(IContextObject).GetTypeInfo().IsAssignableFrom(parameters[0].ParameterType))
             {
-                inner = new InvalidCastException($"Parameter '{_parameters[0].Name}' of type '{_parameters[0].ParameterType.Name}' must be castable to type '{nameof(IContextObject)}'.");
+                inner = new InvalidCastException($"Parameter '{parameters[0].Name}' of type '{_parameters[0].ParameterType.Name}' must be castable to type '{nameof(IContextObject)}'.");
             }
 
             if (inner != null)
             {
                 throw new CommandParsingException(
                     ParserFailReason.MalformedExecutor,
-                    $"Executor method '{method.Name}' of command '{_type.Name}' does not meet the required parameter rulings.",
+                    $"Executor method '{mInfo.Name}' of command '{_type.Name}' does not meet the required parameter rulings.",
                     inner
                 );
             }
+
+            return parameters;
         }
 
         /// <summary>
         /// Ensures all subcommand executors follow the command executor method rules
         /// </summary>
         /// <exception cref="CommandParsingException">Thrown if the subcommand executor does not follow command executor method rules</exception>
-        public void CheckSubExecutorMethodStructures()
+        public void DiscoverSubexecutorMethods()
         {
-            _subExecutors = _type.GetRuntimeMethods().Where(m => m.GetCustomAttribute<SubcommandExecutorAttribute>() != null);
-
-            foreach (MethodInfo method in _subExecutors)
-            {
-                CheckMethodStructure(method);
-                CheckParameterStructure(_parameters.Skip(1));
-
-                CommandMetadata metadata = new CommandMetadata
-                {
-                    Type = _type,
-                    ExecutingMethod = method,
-                    RequiredArguments = _requiredArgumentCount,
-                    ParameterData = _parameterMetadata,
-                    Aliases = method.GetCustomAttribute<SubcommandExecutorAttribute>().SubCommands
-                };
-
-                (_commandMetadata.SubcommandMetadata as List<CommandMetadata>).Add(metadata);
-            }
+            _subExecutors = (from methodInfo in _type.GetRuntimeMethods().Where(m => m.GetCustomAttribute<SubcommandExecutorAttribute>() != null)
+                             select new CommandExecutorData
+                             {
+                                 ExecutorAttribute = methodInfo.GetCustomAttribute<SubcommandExecutorAttribute>(),
+                                 ExecutingMethod = methodInfo,
+                                 AsyncExecution = methodInfo.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null,
+                                 ParentCommand = _executors.First(
+                                     e => e.ExecutingMethod.Name == methodInfo.GetCustomAttribute<SubcommandExecutorAttribute>().ParentName)
+                             }).ToList();
         }
 
         /// <summary>
         /// Ensures the given parameters follow the parameter rules
         /// </summary>
         /// <exception cref="CommandParsingException">Thrown if a parameter does not follow command parameter rules</exception>
-        public void CheckParameterStructure(IEnumerable<ParameterInfo> parameters)
+        public void CheckParameterStructure(CommandExecutorData executor, IEnumerable<ParameterInfo> parameters)
         {
             bool optionalFound = false;
             bool unknownLengthFound = false;
-            _requiredArgumentCount = 0;
+            requiredArgumentCount = 0;
             Dictionary<ParameterInfo, CommandParameterAttribute> paramData = new Dictionary<ParameterInfo, CommandParameterAttribute>();
 
             foreach (ParameterInfo param in parameters)
@@ -250,15 +248,15 @@ namespace HQ.Parsing
                 if (attr.Repetitions < 1)
                 {
                     unknownLengthFound = true;
-                    _requiredArgumentCount = -1;
+                    requiredArgumentCount = -1;
                 }
                 if (!attr.Optional)
                 {
-                    _requiredArgumentCount += attr.Repetitions;
+                    requiredArgumentCount += attr.Repetitions;
                 }
             }
 
-            _parameterMetadata = paramData;
+            executor.ParameterData = paramData;
         }
     }
 }

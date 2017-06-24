@@ -1,9 +1,6 @@
-﻿using HQ.Attributes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using HQ.Extensions;
 
 namespace HQ
 {
@@ -13,40 +10,32 @@ namespace HQ
     public class CommandMetadata
     {
         /// <summary>
-        /// Whether or not the command should be run asynchronously
-        /// </summary>
-        public bool AsyncExecution { get; internal set; }
-        /// <summary>
-        /// The method that will be called when the command is executed
-        /// </summary>
-        public MethodInfo ExecutingMethod { get; internal set; }
-        /// <summary>
-        /// The number of arguments that are required for the ExecutingMethod to be executed
-        /// </summary>
-        public int RequiredArguments { get; internal set; }
-        /// <summary>
-        /// Key-value pairs describing each parameter of the executing method of the command
-        /// </summary>
-        public Dictionary<ParameterInfo, CommandParameterAttribute> ParameterData { get; internal set; }
-        /// <summary>
         /// The command's Type
         /// </summary>
         public Type Type { get; internal set; }
         /// <summary>
-        /// A message describing this command
+        /// Executing methods present on the command's type
         /// </summary>
-        public string Description { get; set; }
+        public IEnumerable<CommandExecutorData> Executors { get; internal set; }
+
         /// <summary>
-        /// Aliases the command can be executed with
+        /// Returns all executors that match the given input
         /// </summary>
-        public IEnumerable<RegexString> Aliases { get; internal set; }
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public IEnumerable<CommandExecutorData> GetExecutorData(string input)
+        {
+            return Executors?.Where(e => e.ExecutorAttribute.CommandMatchers.Any(m => m.Matches(input)));
+        }
+
         /// <summary>
-        /// Metadata for each subcommand defined on this command
+        /// Returns the first executor that matches the given input, or a default value if none was found
         /// </summary>
-        public IEnumerable<CommandMetadata> SubcommandMetadata { get; internal set; }
-        /// <summary>
-        /// Whether or not this command has subcommands
-        /// </summary>
-        public bool HasSubcommands => SubcommandMetadata != null && SubcommandMetadata.Count() > 0;
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public CommandExecutorData GetFirstOrDefaultExecutorData(string input)
+        {
+            return Executors?.FirstOrDefault(e => e.ExecutorAttribute.CommandMatchers.Any(m => m.Matches(input)));
+        }
     }
 }

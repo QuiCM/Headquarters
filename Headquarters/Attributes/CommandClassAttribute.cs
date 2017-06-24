@@ -6,20 +6,14 @@ namespace HQ.Attributes
     /// Decorates a class to mark it as containing commands.
     /// Allows definition of the caching rule for this command
     /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
     public class CommandClassAttribute : Attribute
     {
         /// <summary>
-        /// Whether or not the command should be executed asynchronously
+        /// Decorates a class containing a command executor
         /// </summary>
-        public bool AsyncExecution { get; set; }
-
-        /// <summary>
-        /// Decorates a class containing commands, and optionally tells the parser to execute the command asynchronously
-        /// </summary>
-        /// <param name="async">Whether or not the command should be executed asynchronously</param>
-        public CommandClassAttribute(bool async = false)
+        public CommandClassAttribute()
         {
-            AsyncExecution = async;
         }
     }
 }

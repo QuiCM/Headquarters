@@ -4,7 +4,6 @@ using HQ.Parsing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using HQ.Extensions;
 
 namespace HQ
 {
@@ -71,14 +70,22 @@ namespace HQ
         /// Returns an instance of the parser that currently registered.
         /// </summary>
         /// <param name="registry">Registry to be used by the parser</param>
-        /// <param name="args">Arguments to be used by the parser</param>
+        /// <param name="input">String input provided to the parser</param>
+        /// <param name="args">Additional arguments to be used by the parser</param>
         /// <param name="metadata">Metadata to be used by the parser</param>
+        /// <param name="exeData">CommandExecutorData to be used by the parser</param>
         /// <param name="ctx">Context to be used by the parser</param>
         /// <param name="callback">Callback method to be invoked when the parser completes</param>
-        public AbstractParser GetParser(CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, InputResultDelegate callback)
+        public AbstractParser GetParser(CommandRegistry registry,
+            string input, 
+            IEnumerable<object> args,
+            CommandMetadata metadata,
+            CommandExecutorData exeData, 
+            IContextObject ctx, 
+            InputResultDelegate callback)
         {
             ThrowIfDisposed();
-            return (AbstractParser)Activator.CreateInstance(_parser, registry, args, metadata, ctx, callback);
+            return (AbstractParser)Activator.CreateInstance(_parser, registry, input, args, metadata, exeData, ctx, callback);
         }
 
         /// <summary>
@@ -124,23 +131,14 @@ namespace HQ
         }
 
         /// <summary>
-        /// Registers a type as a command
+        /// Registers a type as a command container
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="names"></param>
-        /// <param name="description"></param>
-        public CommandRegistry AddCommand(Type type, IEnumerable<RegexString> names, string description)
+        /// <param name="type">The type to be registered</param>
+        public CommandRegistry AddCommand(Type type)
         {
             ThrowIfDisposed();
 
-            FormatVerifier verifier = new FormatVerifier(type);
-            verifier.Run();
-            CommandMetadata metadata = verifier.Metadata;
-            metadata.Aliases = names;
-            metadata.Description = description;
-
-            _queue.AddMetadata(metadata);
-
+            _queue.AddMetadata(new FormatVerifier(type).Run().Metadata);
             return this;
         }
 

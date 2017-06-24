@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using HQ.Extensions;
+using System.Linq;
 
 namespace HQ.Attributes
 {
@@ -8,39 +8,24 @@ namespace HQ.Attributes
     /// Decorates a method to mark it as a sub-executor for a command
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
-    public class SubcommandExecutorAttribute : Attribute
+    public class SubcommandExecutorAttribute : CommandExecutorAttribute
     {
         /// <summary>
-        /// The phrase used to identify the sub-executor from a command string
+        /// A string representing the name of the command that executes this subcommand
         /// </summary>
-        public IEnumerable<RegexString> SubCommands { get; }
+        public string ParentName { get; }
 
         /// <summary>
-        /// Creates a new <see cref="SubcommandExecutorAttribute"/> with the given <see cref="RegexString"/> phrases
+        /// Constructs a new SubcommandExecutorAttribute using the given <see cref="RegexString"/>s to match input to the command
         /// </summary>
-        /// <param name="subCmd"></param>
-        /// <param name="subCmds"></param>
-        public SubcommandExecutorAttribute(RegexString subCmd, params RegexString[] subCmds)
+        /// <param name="parentCommand">A string representing the name of the command that executes this subcommand</param>
+        /// <param name="description">A string describing the command</param>
+        /// <param name="commandMatcher">A required RegexString that input must match for the command to be run</param>
+        /// <param name="commandMatchers">Optional RegexStrings that input may match for the command to be run</param>
+        public SubcommandExecutorAttribute(string parentCommand, string description, string commandMatcher, params string[] commandMatchers)
+            : base(description, commandMatcher, commandMatchers)
         {
-            List<RegexString> subs = new List<RegexString>() { subCmd };
-            subs.AddRange(subCmds);
-            SubCommands = subs;
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="SubcommandExecutorAttribute"/> with the given phrases
-        /// </summary>
-        /// <param name="subCmd"></param>
-        /// <param name="subCmds"></param>
-        public SubcommandExecutorAttribute(string subCmd, params string[] subCmds)
-        {
-            List<RegexString> subs = new List<RegexString>() { subCmd };
-            foreach (string sub in subCmds)
-            {
-                subs.Add(sub);
-            }
-
-            SubCommands = subs;
+            ParentName = parentCommand;
         }
     }
 }
