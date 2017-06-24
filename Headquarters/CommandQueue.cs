@@ -145,16 +145,17 @@ namespace HQ
                     continue;
                 }
 
-                string input = data.Input;
+                string input = data.Input; //We don't lower the data because case sensitivity is an option for command matching
 
-                List<CommandMetadata> metadatas;
+                CommandMetadata metadata;
                 lock (_lock)
                 {
-                    //Lock while iterating collection, then release. Create a copy with ToList()
-                    metadatas = _metadata.Where(c => c.Aliases.Any(a => a.Matches(input.ToLowerInvariant()))).ToList();
+                    //Lock the metadata collection, and grab the first metadata that has a matching executor
+                    List<CommandMetadata> metadatas = _metadata.Where(m => m.GetFirstOrDefaultExecutorData(input) != null).ToList();
+                    metadata = metadatas.FirstOrDefault();
                 }
 
-                if (metadatas.Count == 0)
+                if (metadata == null)
                 {
                     data.Callback.Invoke(InputResult.Unhandled, null);
 
@@ -163,12 +164,12 @@ namespace HQ
                     continue;
                 }
 
-                RegexString trigger = metadatas.FirstOrDefault().Aliases.FirstOrDefault();
-                input = trigger.RemoveMatchedString(input);
-                IEnumerable<object> arguments = input.ObjectiveExplode();
-                CommandMetadata metadata = metadatas.First();
+                CommandExecutorData exeData = metadata.GetFirstOrDefaultExecutorData(input);
+
+                RegexString trigger = exeData.ExecutorAttribute.CommandMatchers.First(m => m.Matches(input));
+                input = trigger.RemoveMatchedString(input).TrimStart();
                 
-                AbstractParser parser = _registry.GetParser( _registry, arguments, metadatas.First(), data.Context, data.Callback);
+                AbstractParser parser = _registry.GetParser( _registry, input, null, metadata, exeData, data.Context, data.Callback);
 
                 try
                 {
@@ -191,28 +192,30 @@ namespace HQ
             for (int i = 0; i < inputs.Length; i++)
             {
                 string input = $"{inputs[i]}".Trim();
-                List<CommandMetadata> metadatas;
+                CommandMetadata metadata;
                 lock (_lock)
                 {
-                    //Lock while iterating collection, then release. Create a copy with ToList() in order to be threadsafe
-                    metadatas = _metadata.Where(c => c.Aliases.Any(a => a.Matches(input.ToLowerInvariant()))).ToList();
+                    //Lock the metadata collection, and grab the first metadata that has a matching executor
+                    List<CommandMetadata> metadatas = _metadata.Where(m => m.GetFirstOrDefaultExecutorData(input) != null).ToList();
+                    metadata = metadatas.FirstOrDefault();
                 }
 
-                if (metadatas.Count == 0)
+                if (metadata == null)
                 {
                     //No command matches, so ignore this entire piped input
                     callback.Invoke(InputResult.Unhandled, null);
                     break;
                 }
 
-                RegexString trigger = metadatas.FirstOrDefault().Aliases.FirstOrDefault();
+                CommandExecutorData exeData = metadata.GetFirstOrDefaultExecutorData(input);
+
+                RegexString trigger = exeData.ExecutorAttribute.CommandMatchers.First(m => m.Matches(input));
                 input = trigger.RemoveMatchedString(input);
-                IEnumerable<object> arguments = input.ObjectiveExplode();
-                CommandMetadata metadata = metadatas.First();
+                object[] arguments = null;
                 if (output != null)
                 {
                     //If there's output from a previous command, append it to the arguments for this command
-                    arguments = arguments.Concat(new[] { output });
+                    arguments = new[] { output };
                 }
 
                 AbstractParser parser;
@@ -220,11 +223,11 @@ namespace HQ
                 if (i == inputs.Length - 1)
                 {
                     //We only want the final parsing to invoke the parser callback
-                    parser = _registry.GetParser(_registry, arguments, metadata, ctx, callback);
+                    parser = _registry.GetParser(_registry, input, arguments, metadata, exeData, ctx, callback);
                 }
                 else
                 {
-                    parser = _registry.GetParser(_registry, arguments, metadata, ctx, null);
+                    parser = _registry.GetParser(_registry, input, arguments, metadata, exeData, ctx, null);
                 }
 
                 //Threads are joined for synchronous behaviour. Concurrency will not work here

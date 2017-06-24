@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace HQ
 {
     /// <summary>
-    /// A string that can be a regex or not
+    /// A String that may or may not also be a <see cref="Regex"/>
     /// </summary>
     public class RegexString
     {
@@ -21,7 +21,7 @@ namespace HQ
         public RegexStringOptions Options { get; set; } = new RegexStringOptions();
 
         /// <summary>
-        /// Creates a new <see cref="RegexString"/> with the given string and <see cref="RegexStringOptions"/>
+        /// Constructs a new RegexString with the given string and <see cref="RegexStringOptions"/>
         /// </summary>
         /// <param name="pattern"></param>
         /// <param name="options"></param>
@@ -38,12 +38,11 @@ namespace HQ
                 }
                 if (options.EnforceMatchAtEndPosition)
                 {
-                    _matchEnd = true;
                     //'$' is the regex modifier to assert that the match must end at the end of the string
                     regexPattern = regexPattern + "$";
                 }
 
-                _regex = new Regex(pattern, !options.CaseSensitive ? RegexOptions.IgnoreCase : RegexOptions.None);
+                _regex = new Regex(regexPattern, !options.CaseSensitive ? RegexOptions.IgnoreCase : RegexOptions.None);
             }
 
             _matchStart = options.EnforceMatchAtStartPosition;
@@ -123,12 +122,21 @@ namespace HQ
 
         /// <summary>
         /// Provides an implicit conversion from string to <see cref="RegexString"/>.
-        /// Strings converted in this way use <see cref="RegexStringOptions.MatchStartOptions"/>
         /// </summary>
         /// <param name="str"></param>
         public static implicit operator RegexString(string str)
         {
-            return new RegexString(str, RegexStringOptions.MatchStartOptions);
+            return new RegexString(str, new RegexStringOptions());
+        }
+
+        /// <summary>
+        /// Provides an implicit conversion from <see cref="RegexString"/> to string.
+        /// RegexStrings converted in this way follow the some conversion as calling <see cref="ToString()"/>
+        /// </summary>
+        /// <param name="str"></param>
+        public static implicit operator string(RegexString str)
+        {
+            return str._string;
         }
 
         /// <summary>

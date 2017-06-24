@@ -20,12 +20,20 @@ namespace HQ.Parsing
         /// Generates a new parser that uses the given registry, args, metadata, context, and ID to run
         /// </summary>
         /// <param name="registry">Registry from which the parser will obtain <see cref="IObjectConverter"/>s</param>
-        /// <param name="args">Enumerable of objects to be parsed</param>
+        /// <param name="input">The original input string</param>
+        /// <param name="additionalArgs">Any additional arguments to be added to the end of the argument list</param>
         /// <param name="metadata">CommandMetadata containing information used to parse and execute</param>
+        /// <param name="exeData"><see cref="CommandExecutorData"/> containing the data required for execution</param>
         /// <param name="ctx">Context object passed to the executed command, and an <see cref="IObjectConverter"/>s that are used</param>
         /// <param name="callback">Reference to a method used as a callback when processing completes</param>
-        public Parser(CommandRegistry registry, IEnumerable<object> args, CommandMetadata metadata, IContextObject ctx, InputResultDelegate callback)
-            : base(registry, args, metadata, ctx, callback)
+        public Parser(CommandRegistry registry,
+            string input,
+            IEnumerable<object> additionalArgs,
+            CommandMetadata metadata,
+            CommandExecutorData exeData,
+            IContextObject ctx,
+            InputResultDelegate callback)
+            : base(registry, input, additionalArgs, metadata, exeData, ctx, callback)
         {
         }
 
@@ -59,9 +67,9 @@ namespace HQ.Parsing
                 ConvertArgumentsToTypes(Context);
 
                 object command = Activator.CreateInstance(Metadata.Type);
-                Output = Metadata.ExecutingMethod.Invoke(command, Objects.ToArray());
+                Output = ExecutorData.ExecutingMethod.Invoke(command, Objects.ToArray());
 
-                if (Metadata.AsyncExecution)
+                if (ExecutorData.AsyncExecution)
                 {
                     Task<object> task = (Task<object>)Output;
                     Output = task.GetAwaiter().GetResult();
@@ -81,14 +89,9 @@ namespace HQ.Parsing
         /// </summary>
         protected override void CheckBasicArgumentRules()
         {
-            if (Args == null)
+            if (Input == null)
             {
                 throw new CommandParsingException(ParserFailReason.InvalidArguments, "Null was provided as arguments.");
-            }
-
-            if (Args.Count() < Metadata.RequiredArguments)
-            {
-                throw new CommandParsingException(ParserFailReason.InvalidArguments, $"Insufficient arguments provided. Expected {Metadata.RequiredArguments} but received {Args.Count()}.");
             }
         }
 
@@ -97,22 +100,27 @@ namespace HQ.Parsing
         /// </summary>
         protected override void AttemptSwitchToSubcommand()
         {
-            if (!Metadata.HasSubcommands || Args.Count() == 0)
+            if (!ExecutorData.HasSubcommands || Input.Length == 0)
             {
                 return;
             }
 
-            CommandMetadata subcommand = Metadata.SubcommandMetadata.FirstOrDefault(
-                c => c.Aliases.Any(
-                    a => a.Matches(Args.First().ToString().ToLowerInvariant())
-                )
+            RegexString trigger = null;
+            CommandExecutorData subcommand = ExecutorData.Subcommands.FirstOrDefault(
+                sub =>
+                {
+                    trigger = sub.ExecutorAttribute.CommandMatchers.FirstOrDefault(matcher =>
+                        matcher.Matches(Input));
+
+                    return trigger != null;
+                }
             );
 
             if (subcommand != null)
             {
-                Metadata = subcommand;
+                ExecutorData = subcommand;
                 //Remove the subcommand name
-                Args = Args.Skip(1);
+                Input = trigger.RemoveMatchedString(Input);
             }
         }
 
@@ -124,14 +132,20 @@ namespace HQ.Parsing
         {
             Objects = new List<object>() { ctx };
             int index = 0;
+            IEnumerable<object> arguments = Input.ObjectiveExplode();
 
-            foreach (KeyValuePair<ParameterInfo, CommandParameterAttribute> kvp in Metadata.ParameterData)
+            if (AdditionalArgs != null)
+            {
+                arguments = arguments.Concat(AdditionalArgs);
+            }
+
+            foreach (KeyValuePair<ParameterInfo, CommandParameterAttribute> kvp in ExecutorData.ParameterData)
             {
                 //Get the number of arguments going in to the parameter
-                int count = kvp.Value.Repetitions <= 0 ? Args.Count() - index
+                int count = kvp.Value.Repetitions <= 0 ? arguments.Count() - index
                                                         : kvp.Value.Repetitions;
 
-                if (index >= Args.Count())
+                if (index >= arguments.Count())
                 {
                     //If we've used all our arguments, just add empty ones to satisfy the
                     //method signature for the command
@@ -139,7 +153,7 @@ namespace HQ.Parsing
                     continue;
                 }
 
-                object[] args = Args.ReadToArray(index, count);
+                object[] args = arguments.ReadToArray(index, count);
 
                 //If the provided object is already of the required type, add and continue
                 if (count == 1 && args[0].GetType() == kvp.Key.ParameterType)
