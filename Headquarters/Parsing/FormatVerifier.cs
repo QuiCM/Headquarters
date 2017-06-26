@@ -117,7 +117,8 @@ namespace HQ.Parsing
         /// <exception cref="CommandParsingException">Thrown if the executor does not follow command executor style rules</exception>
         public void DiscoverExecutors()
         {
-            _executors = (from methodInfo in _type.GetRuntimeMethods().Where(m => m.GetCustomAttribute<CommandExecutorAttribute>() != null)
+            _executors = (from methodInfo in _type.GetRuntimeMethods().Where(m => m.GetCustomAttribute<CommandExecutorAttribute>() != null
+                          && !(m.GetCustomAttribute<CommandExecutorAttribute>() is SubcommandExecutorAttribute))
                           select new CommandExecutorData
                           {
                               ExecutorAttribute = methodInfo.GetCustomAttribute<CommandExecutorAttribute>(),

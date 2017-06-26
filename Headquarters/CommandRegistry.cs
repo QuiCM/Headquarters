@@ -119,13 +119,18 @@ namespace HQ
         /// <summary>
         /// Queues an input for handling, returning a unique ID with which to obtain results
         /// </summary>
-        /// <param name="input"></param>
-        /// <param name="ctx"></param>
-        /// <param name="callback"></param>
+        /// <param name="input">The string from which command data will be parsed</param>
+        /// <param name="ctx">A context object which is passed to the command method, and is used to convert data types</param>
+        /// <param name="callback">A callback method for when the command completes</param>
         /// <returns></returns>
         public void HandleInput(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
+
+            if (callback == null)
+            {
+                throw new ArgumentNullException("callback");
+            }
 
             _queue.QueueInputHandling(input, ctx, callback);
         }
