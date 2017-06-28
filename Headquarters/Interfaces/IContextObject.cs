@@ -9,6 +9,10 @@ namespace HQ.Interfaces
     public interface IContextObject
     {
         /// <summary>
+        /// A reference to the CommandRegistry relevant to this context
+        /// </summary>
+        CommandRegistry Registry { get; }
+        /// <summary>
         /// Objects stored via a Type using <see cref="Store{T}(object)"/>
         /// </summary>
         ConcurrentDictionary<Type, object> TypedStorage { get; }

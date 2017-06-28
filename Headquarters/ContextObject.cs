@@ -24,6 +24,21 @@ namespace HQ
 
         /// <inheritdoc/>
         /// <summary>
+        /// See <see cref="IContextObject.Registry"/>
+        /// </summary>
+        public CommandRegistry Registry { get; }
+
+        /// <summary>
+        /// Constructs a new context object using the given command registry
+        /// </summary>
+        /// <param name="registry"></param>
+        public ContextObject(CommandRegistry registry)
+        {
+            Registry = registry;
+        }
+
+        /// <inheritdoc/>
+        /// <summary>
         /// See <see cref="IContextObject.Retrieve{T}()"/>
         /// </summary>
         public T Retrieve<T>()

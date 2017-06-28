@@ -123,7 +123,7 @@ namespace HQ.Parsing
         /// <param name="ctx"></param>
         protected override void ConvertArgumentsToTypes(IContextObject ctx)
         {
-            Objects = new List<object>() { ctx };
+            Objects = new List<object> { ctx };
             int index = 0;
             IEnumerable<object> arguments = Input.ObjectiveExplode();
 
@@ -159,7 +159,7 @@ namespace HQ.Parsing
                 if (converter == null)
                 {
                     //Use the object creator to attempt a conversion
-                    Objects.Add(ObjectCreator.CreateObject(kvp.Key.ParameterType, args, ctx, Registry));
+                    Objects.Add(ObjectCreator.CreateObject(kvp.Key.ParameterType, args, ctx));
                 }
                 else
                 {
