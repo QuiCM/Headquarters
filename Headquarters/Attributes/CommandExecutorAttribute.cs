@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace HQ.Attributes
 {
@@ -18,6 +16,10 @@ namespace HQ.Attributes
         /// A string describing this command
         /// </summary>
         public string Description { get; }
+        /// <summary>
+        /// A human-readable name for the command
+        /// </summary>
+        public string FriendlyName { get; }
 
         /// <summary>
         /// Constructs a new CommandExecutorAttribute using the given <see cref="RegexString"/>s to match input to the command
@@ -25,10 +27,12 @@ namespace HQ.Attributes
         /// <param name="description">A string describing the command</param>
         /// <param name="commandMatcher">A required RegexString that input must match for the command to be run</param>
         /// <param name="matcherOptions">A RegexStringOptions enum defining how the matcher will behave</param>
-        public CommandExecutorAttribute(string description, string commandMatcher, RegexStringOptions matcherOptions)
+        /// <param name="friendlyName">An optional human-readable name for the command</param>
+        public CommandExecutorAttribute(string description, string commandMatcher, RegexStringOptions matcherOptions, string friendlyName = null)
         {
             Description = description;
             CommandMatcher = new RegexString(commandMatcher, matcherOptions);
+            FriendlyName = friendlyName;
         }
     }
 }

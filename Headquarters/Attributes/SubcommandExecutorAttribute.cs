@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace HQ.Attributes
 {
@@ -22,8 +20,9 @@ namespace HQ.Attributes
         /// <param name="description">A string describing the command</param>
         /// <param name="commandMatcher">A required RegexString that input must match for the command to be run</param>
         /// <param name="matcherOptions">A RegexStringOptions enum defining how the matcher will behave</param>
-        public SubcommandExecutorAttribute(string parentCommand, string description, string commandMatcher, RegexStringOptions matcherOptions)
-            : base(description, commandMatcher, matcherOptions)
+        /// <param name="friendlyName">An optional human-readable name for the command</param>
+        public SubcommandExecutorAttribute(string parentCommand, string description, string commandMatcher, RegexStringOptions matcherOptions, string friendlyName = null)
+            : base(description, commandMatcher, matcherOptions, friendlyName)
         {
             ParentName = parentCommand;
         }
