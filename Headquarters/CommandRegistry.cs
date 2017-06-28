@@ -13,7 +13,6 @@ namespace HQ
         Every time number exceeds some stepped value, add another command queue.
         Select which command queue is used to run some input based on whichever queue is free.
         I.E., Dynamically create and release command queues as required.
-        If this is implemented, input IDs returned by a command queue will need to be reworked
     */
 
     /// <summary>
@@ -36,6 +35,28 @@ namespace HQ
                 ThrowIfDisposed();
                 return _converters;
             }
+        }
+
+        /// <summary>
+        /// Adds a converter for the given type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="converter"></param>
+        public void AddConverter<T>(IObjectConverter converter)
+        {
+            AddConverter(typeof(T), converter);
+        }
+
+        /// <summary>
+        /// Adds a converter for the given type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="converter"></param>
+        public void AddConverter(Type type, IObjectConverter converter)
+        {
+            ThrowIfDisposed();
+
+            _converters.AddOrUpdate(type, converter, (n, existing) => converter);
         }
 
         /// <summary>
@@ -145,6 +166,17 @@ namespace HQ
 
             _queue.AddMetadata(new FormatVerifier(type).Run().Metadata);
             return this;
+        }
+
+        /// <summary>
+        /// Returns a copy of all the currently added command metadata
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<CommandMetadata> GetCommands()
+        {
+            ThrowIfDisposed();
+
+            return _queue.GetMetadata();
         }
 
         #region IDisposable Support

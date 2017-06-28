@@ -71,6 +71,18 @@ namespace HQ
         }
 
         /// <summary>
+        /// Returns a copy of all the currently added command metadata
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<CommandMetadata> GetMetadata()
+        {
+            lock (_metadata)
+            {
+                return _metadata.ToList();
+            }
+        }
+
+        /// <summary>
         /// Starts the CommandQueue's input processing
         /// </summary>
         public void BeginProcessing()
