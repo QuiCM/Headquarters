@@ -25,7 +25,7 @@ namespace HQ
         /// <returns></returns>
         public IEnumerable<CommandExecutorData> GetExecutorData(string input)
         {
-            return Executors?.Where(e => e.ExecutorAttribute.CommandMatchers.Any(m => m.Matches(input)));
+            return Executors?.Where(e => e.ExecutorAttribute.CommandMatcher.Matches(input));
         }
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace HQ
         /// <returns></returns>
         public CommandExecutorData GetFirstOrDefaultExecutorData(string input)
         {
-            return Executors?.FirstOrDefault(e => e.ExecutorAttribute.CommandMatchers.Any(m => m.Matches(input)));
+            return Executors?.FirstOrDefault(e => e.ExecutorAttribute.CommandMatcher.Matches(input));
         }
     }
 }

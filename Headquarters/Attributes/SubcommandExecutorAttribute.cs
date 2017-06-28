@@ -21,9 +21,9 @@ namespace HQ.Attributes
         /// <param name="parentCommand">A string representing the name of the command that executes this subcommand</param>
         /// <param name="description">A string describing the command</param>
         /// <param name="commandMatcher">A required RegexString that input must match for the command to be run</param>
-        /// <param name="commandMatchers">Optional RegexStrings that input may match for the command to be run</param>
-        public SubcommandExecutorAttribute(string parentCommand, string description, string commandMatcher, params string[] commandMatchers)
-            : base(description, commandMatcher, commandMatchers)
+        /// <param name="matcherOptions">A RegexStringOptions enum defining how the matcher will behave</param>
+        public SubcommandExecutorAttribute(string parentCommand, string description, string commandMatcher, RegexStringOptions matcherOptions)
+            : base(description, commandMatcher, matcherOptions)
         {
             ParentName = parentCommand;
         }

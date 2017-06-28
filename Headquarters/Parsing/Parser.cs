@@ -104,23 +104,16 @@ namespace HQ.Parsing
             {
                 return;
             }
-
-            RegexString trigger = null;
+            
             CommandExecutorData subcommand = ExecutorData.Subcommands.FirstOrDefault(
-                sub =>
-                {
-                    trigger = sub.ExecutorAttribute.CommandMatchers.FirstOrDefault(matcher =>
-                        matcher.Matches(Input));
-
-                    return trigger != null;
-                }
+                sub => sub.ExecutorAttribute.CommandMatcher.Matches(Input)
             );
 
             if (subcommand != null)
             {
                 ExecutorData = subcommand;
                 //Remove the subcommand name
-                Input = trigger.RemoveMatchedString(Input);
+                Input = subcommand.ExecutorAttribute.CommandMatcher.RemoveMatchedString(Input);
             }
         }
 

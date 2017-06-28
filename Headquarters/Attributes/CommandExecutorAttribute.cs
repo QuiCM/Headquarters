@@ -13,7 +13,7 @@ namespace HQ.Attributes
         /// <summary>
         /// An enumerable of <see cref="RegexString"/>s that may be used to match input to the command
         /// </summary>
-        public IEnumerable<RegexString> CommandMatchers { get; }
+        public RegexString CommandMatcher { get; }
         /// <summary>
         /// A string describing this command
         /// </summary>
@@ -24,11 +24,11 @@ namespace HQ.Attributes
         /// </summary>
         /// <param name="description">A string describing the command</param>
         /// <param name="commandMatcher">A required RegexString that input must match for the command to be run</param>
-        /// <param name="commandMatchers">Optional RegexStrings that input may match for the command to be run</param>
-        public CommandExecutorAttribute(string description, string commandMatcher, params string[] commandMatchers)
+        /// <param name="matcherOptions">A RegexStringOptions enum defining how the matcher will behave</param>
+        public CommandExecutorAttribute(string description, string commandMatcher, RegexStringOptions matcherOptions)
         {
             Description = description;
-            CommandMatchers = commandMatchers.Concat(new[] { commandMatcher }).Select(c => (RegexString)c);
+            CommandMatcher = new RegexString(commandMatcher, matcherOptions);
         }
     }
 }

@@ -178,7 +178,7 @@ namespace HQ
 
                 CommandExecutorData exeData = metadata.GetFirstOrDefaultExecutorData(input);
 
-                RegexString trigger = exeData.ExecutorAttribute.CommandMatchers.First(m => m.Matches(input));
+                RegexString trigger = exeData.ExecutorAttribute.CommandMatcher;
                 input = trigger.RemoveMatchedString(input).TrimStart();
                 
                 AbstractParser parser = _registry.GetParser( _registry, input, null, metadata, exeData, data.Context, data.Callback);
@@ -221,7 +221,7 @@ namespace HQ
 
                 CommandExecutorData exeData = metadata.GetFirstOrDefaultExecutorData(input);
 
-                RegexString trigger = exeData.ExecutorAttribute.CommandMatchers.First(m => m.Matches(input));
+                RegexString trigger = exeData.ExecutorAttribute.CommandMatcher;
                 input = trigger.RemoveMatchedString(input);
                 object[] arguments = null;
                 if (output != null)

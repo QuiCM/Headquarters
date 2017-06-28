@@ -39,10 +39,7 @@ namespace HQ.Parsing
         private Type _type;
         private List<CommandExecutorData> _executors;
         private List<CommandExecutorData> _subExecutors;
-        private ParameterInfo[] _parameters;
-        private Dictionary<ParameterInfo, CommandParameterAttribute> _parameterMetadata;
         private int requiredArgumentCount;
-        private bool _async;
 
         private CommandMetadata _commandMetadata;
 
@@ -172,7 +169,7 @@ namespace HQ.Parsing
             }
             else if (!typeof(IContextObject).GetTypeInfo().IsAssignableFrom(parameters[0].ParameterType))
             {
-                inner = new InvalidCastException($"Parameter '{parameters[0].Name}' of type '{_parameters[0].ParameterType.Name}' must be castable to type '{nameof(IContextObject)}'.");
+                inner = new InvalidCastException($"Parameter '{parameters[0].Name}' of type '{parameters[0].ParameterType.Name}' must be castable to type '{nameof(IContextObject)}'.");
             }
 
             if (inner != null)
