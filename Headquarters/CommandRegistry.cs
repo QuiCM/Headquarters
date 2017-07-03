@@ -88,7 +88,7 @@ namespace HQ
         }
 
         /// <summary>
-        /// Returns an instance of the parser that currently registered.
+        /// Returns an instance of the parser that is currently registered.
         /// </summary>
         /// <param name="registry">Registry to be used by the parser</param>
         /// <param name="input">String input provided to the parser</param>
@@ -138,7 +138,7 @@ namespace HQ
         }
 
         /// <summary>
-        /// Queues an input for handling, returning a unique ID with which to obtain results
+        /// Queues an input for handling
         /// </summary>
         /// <param name="input">The string from which command data will be parsed</param>
         /// <param name="ctx">A context object which is passed to the command method, and is used to convert data types</param>
@@ -147,11 +147,6 @@ namespace HQ
         public void HandleInput(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
-
-            if (callback == null)
-            {
-                throw new ArgumentNullException("callback");
-            }
 
             _queue.QueueInputHandling(input, ctx, callback);
         }
@@ -165,6 +160,21 @@ namespace HQ
             ThrowIfDisposed();
 
             _queue.AddMetadata(new FormatVerifier(type).Run().Metadata);
+            return this;
+        }
+
+        /// <summary>
+        /// Registers a scanner that scans received strings.
+        /// If a string matches the given pattern, the callback is invoked.
+        /// </summary>
+        /// <param name="pattern"></param>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        public CommandRegistry AddScanner(RegexString pattern, ScannerDelegate callback)
+        {
+            ThrowIfDisposed();
+
+            _queue.AddScanner(pattern, callback);
             return this;
         }
 
