@@ -12,13 +12,14 @@ namespace HQ
         private string _string;
         private bool _matchStart;
         private bool _matchEnd;
+        private bool _caseSensitive;
         private Match _match;
         private bool _matches;
 
         /// <summary>
         /// Options describing how this RegexString will function
         /// </summary>
-        public RegexStringOptions Options { get; set; } = new RegexStringOptions();
+        public RegexStringOptions Options { get; set; }
 
         /// <summary>
         /// Constructs a new RegexString with the given string and <see cref="RegexStringOptions"/>
@@ -28,27 +29,28 @@ namespace HQ
         public RegexString(string pattern, RegexStringOptions options)
         {
             Options = options;
-            if (!options.PlainText)
+            if (!options.HasFlag(RegexStringOptions.PlainText))
             {
                 string regexPattern = pattern;
-                if (options.EnforceMatchAtStartPosition)
+                if (options.HasFlag(RegexStringOptions.MatchFromStart))
                 {
                     //'^' is the regex modifier to assert that the match must begin at the start of the string
                     regexPattern = "^" + regexPattern;
                 }
-                if (options.EnforceMatchAtEndPosition)
+                if (options.HasFlag(RegexStringOptions.MatchAtEnd))
                 {
                     //'$' is the regex modifier to assert that the match must end at the end of the string
                     regexPattern = regexPattern + "$";
                 }
 
-                _regex = new Regex(regexPattern, !options.CaseSensitive ? RegexOptions.IgnoreCase : RegexOptions.None);
+                _regex = new Regex(regexPattern, !options.HasFlag(RegexStringOptions.CaseSensitive) ? RegexOptions.IgnoreCase : RegexOptions.None);
             }
 
-            _matchStart = options.EnforceMatchAtStartPosition;
-            _matchEnd = options.EnforceMatchAtEndPosition;
+            _matchStart = options.HasFlag(RegexStringOptions.MatchFromStart);
+            _matchEnd = options.HasFlag(RegexStringOptions.MatchAtEnd);
 
-            _string = options.CaseSensitive ? pattern : pattern.ToLowerInvariant();
+            _caseSensitive = options.HasFlag(RegexStringOptions.CaseSensitive);
+            _string = _caseSensitive ? pattern : pattern.ToLowerInvariant();
         }
 
         /// <summary>
@@ -68,15 +70,15 @@ namespace HQ
                 if (_matchEnd)
                 {
                     //String must be exactly equal
-                    return _matches = Options.CaseSensitive ? input == _string : input.ToLowerInvariant() == _string;
+                    return _matches = _caseSensitive ? input == _string : input.ToLowerInvariant() == _string;
                 }
 
                 //String must start with match
-                return _matches = Options.CaseSensitive ? input.StartsWith(_string) : input.ToLowerInvariant().StartsWith(_string);
+                return _matches = _caseSensitive ? input.StartsWith(_string) : input.ToLowerInvariant().StartsWith(_string);
             }
 
             //String must contain match
-            return _matches = Options.CaseSensitive ? input.Contains(_string) : input.ToLowerInvariant().Contains(_string);
+            return _matches = _caseSensitive ? input.Contains(_string) : input.ToLowerInvariant().Contains(_string);
         }
 
         /// <summary>
@@ -115,7 +117,7 @@ namespace HQ
                 }
 
                 //Remove from anywhere in the string
-                int index = Options.CaseSensitive ? input.IndexOf(_string) : input.ToLowerInvariant().IndexOf(_string);
+                int index = _caseSensitive ? input.IndexOf(_string) : input.ToLowerInvariant().IndexOf(_string);
                 return input.Remove(index, _string.Length);
             }
         }

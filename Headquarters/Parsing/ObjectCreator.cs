@@ -45,7 +45,7 @@ namespace HQ.Parsing
         {
             if (type == typeof(string))
             {
-                return string.Empty;
+                return null;
             }
             
             return Activator.CreateInstance(type);
@@ -58,9 +58,8 @@ namespace HQ.Parsing
         /// <param name="type"></param>
         /// <param name="arguments"></param>
         /// <param name="ctx"></param>
-        /// <param name="registry"></param>
         /// <returns></returns>
-        public static object CreateObject(Type type, object[] arguments, IContextObject ctx, CommandRegistry registry)
+        public static object CreateObject(Type type, object[] arguments, IContextObject ctx)
         {
             string rejectionStr;
             if (arguments == null)
@@ -97,7 +96,7 @@ namespace HQ.Parsing
             if (tInfo.IsArray)
             {
                 //Arrays get their own method
-                return CreateArray(type, arguments, ctx, registry);
+                return CreateArray(type, arguments, ctx);
             }
 
             try
@@ -116,12 +115,11 @@ namespace HQ.Parsing
         /// <param name="type"></param>
         /// <param name="arguments"></param>
         /// <param name="ctx"></param>
-        /// <param name="registry"></param>
         /// <returns></returns>
-        public static object CreateArray(Type type, object[] arguments, IContextObject ctx, CommandRegistry registry)
+        public static object CreateArray(Type type, object[] arguments, IContextObject ctx)
         {
             Type elementType = type.GetElementType();
-            IObjectConverter converter = registry.GetConverter(elementType);
+            IObjectConverter converter = ctx.Registry.GetConverter(elementType);
 
             string failedConvert = $"Failed to convert '{string.Join(" ", arguments)}' to Type {type.Name}.";
             string failedCreate = $"failed to create an instance of type {elementType.Name} from argument ";

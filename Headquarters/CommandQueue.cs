@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using HQ.Extensions;
 
 namespace HQ
 {
@@ -28,6 +27,18 @@ namespace HQ
             }
         }
 
+        internal class ScannerData
+        {
+            internal RegexString Pattern { get; }
+            internal ScannerDelegate Callback { get; }
+
+            internal ScannerData(RegexString pattern, ScannerDelegate callback)
+            {
+                Pattern = pattern;
+                Callback = callback;
+            }
+        }
+
         /// <summary>
         /// This queue must be concurrent as it can be modified on different threads at any time
         /// </summary>
@@ -37,6 +48,7 @@ namespace HQ
         private Object _lock;
         private ManualResetEvent _mre;
         private CommandRegistry _registry;
+        private List<ScannerData> _scanners;
 
         private bool _started = false;
 
@@ -51,6 +63,7 @@ namespace HQ
             _tokenSource = tokenSource;
             _queue = new ConcurrentQueue<QueueData>();
             _metadata = new List<CommandMetadata>();
+            _scanners = new List<ScannerData>();
             _lock = new Object();
             _mre = new ManualResetEvent(false);
         }
@@ -67,6 +80,30 @@ namespace HQ
             lock (_lock)
             {
                 _metadata.Add(metadata);
+            }
+        }
+
+        /// <summary>
+        /// Adds a new scanner
+        /// </summary>
+        /// <param name="pattern">The scanner's pattern</param>
+        /// <param name="callback">The scanner's callback</param>
+        public void AddScanner(RegexString pattern, ScannerDelegate callback)
+        {
+            ThrowIfDisposed();
+
+            _scanners.Add(new ScannerData(pattern, callback));
+        }
+
+        /// <summary>
+        /// Returns a copy of all the currently added command metadata
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<CommandMetadata> GetMetadata()
+        {
+            lock (_metadata)
+            {
+                return _metadata.ToList();
             }
         }
 
@@ -89,21 +126,56 @@ namespace HQ
         }
 
         /// <summary>
+        /// Determines if the input matches any registered scanners, and invokes the scanner callback if a match is found.
+        /// This method will also invoke the <see cref="InputResultDelegate"/> callback if a scanner is found
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="ctx"></param>
+        /// <param name="callback"></param>
+        public bool ScanInput(string input, IContextObject ctx, InputResultDelegate callback)
+        {
+            ThrowIfDisposed();
+
+            if (_scanners.Count == 0)
+            {
+                return false;
+            }
+
+            ScannerData scanner = _scanners.FirstOrDefault(s => s.Pattern.Matches(input));
+
+            if (scanner != null)
+            {
+                input = scanner.Pattern.RemoveMatchedString(input);
+                bool remove = false;
+
+                object result = scanner.Callback.Invoke(ctx, input, new LightweightParser(ctx), ref remove);
+                callback?.Invoke(InputResult.Scanner, result);
+
+                if (remove)
+                {
+                    _scanners.Remove(scanner);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Adds a command to the command queue, ready to be executed
         /// </summary>
         public void QueueInputHandling(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
 
-            if (callback == null)
+            if (!ScanInput(input, ctx, callback))
             {
-                throw new ArgumentNullException("callback");
+                _queue.Enqueue(new QueueData(input, callback, ctx));
+
+                //Set the MRE so that our parser thread knows there's data
+                _mre.Set();
             }
-
-            _queue.Enqueue(new QueueData(input, callback, ctx));
-
-            //Set the MRE so that our parser thread knows there's data
-            _mre.Set();
         }
 
         /// <summary>
@@ -157,7 +229,7 @@ namespace HQ
 
                 if (metadata == null)
                 {
-                    data.Callback.Invoke(InputResult.Unhandled, null);
+                    data.Callback?.Invoke(InputResult.Unhandled, null);
 
                     //No command matches, so ignore this input
                     _mre.Set();
@@ -166,10 +238,10 @@ namespace HQ
 
                 CommandExecutorData exeData = metadata.GetFirstOrDefaultExecutorData(input);
 
-                RegexString trigger = exeData.ExecutorAttribute.CommandMatchers.First(m => m.Matches(input));
+                RegexString trigger = exeData.ExecutorAttribute.CommandMatcher;
                 input = trigger.RemoveMatchedString(input).TrimStart();
-                
-                AbstractParser parser = _registry.GetParser( _registry, input, null, metadata, exeData, data.Context, data.Callback);
+
+                AbstractParser parser = _registry.GetParser(_registry, input, null, metadata, exeData, data.Context, data.Callback);
 
                 try
                 {
@@ -209,7 +281,7 @@ namespace HQ
 
                 CommandExecutorData exeData = metadata.GetFirstOrDefaultExecutorData(input);
 
-                RegexString trigger = exeData.ExecutorAttribute.CommandMatchers.First(m => m.Matches(input));
+                RegexString trigger = exeData.ExecutorAttribute.CommandMatcher;
                 input = trigger.RemoveMatchedString(input);
                 object[] arguments = null;
                 if (output != null)
@@ -230,7 +302,7 @@ namespace HQ
                     parser = _registry.GetParser(_registry, input, arguments, metadata, exeData, ctx, null);
                 }
 
-                //Threads are joined for synchronous behaviour. Concurrency will not work here
+                //Threads are joined for synchronous behaviour. Running each command concurrently (and thus potentially out of order) will not work here.
                 Thread thread = parser.GetThread();
                 thread.Start();
                 thread.Join();

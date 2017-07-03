@@ -10,6 +10,10 @@
         /// </summary>
         Unhandled,
         /// <summary>
+        /// The input was handled by a scanner, instead of as a command. The Result object will contain the scanner output
+        /// </summary>
+        Scanner,
+        /// <summary>
         /// The input was succesfully handled as a command. The Result object will contain the command output
         /// </summary>
         Success,

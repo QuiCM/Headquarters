@@ -13,7 +13,6 @@ namespace HQ
         Every time number exceeds some stepped value, add another command queue.
         Select which command queue is used to run some input based on whichever queue is free.
         I.E., Dynamically create and release command queues as required.
-        If this is implemented, input IDs returned by a command queue will need to be reworked
     */
 
     /// <summary>
@@ -36,6 +35,28 @@ namespace HQ
                 ThrowIfDisposed();
                 return _converters;
             }
+        }
+
+        /// <summary>
+        /// Adds a converter for the given type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="converter"></param>
+        public void AddConverter<T>(IObjectConverter converter)
+        {
+            AddConverter(typeof(T), converter);
+        }
+
+        /// <summary>
+        /// Adds a converter for the given type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="converter"></param>
+        public void AddConverter(Type type, IObjectConverter converter)
+        {
+            ThrowIfDisposed();
+
+            _converters.AddOrUpdate(type, converter, (n, existing) => converter);
         }
 
         /// <summary>
@@ -67,7 +88,7 @@ namespace HQ
         }
 
         /// <summary>
-        /// Returns an instance of the parser that currently registered.
+        /// Returns an instance of the parser that is currently registered.
         /// </summary>
         /// <param name="registry">Registry to be used by the parser</param>
         /// <param name="input">String input provided to the parser</param>
@@ -117,7 +138,7 @@ namespace HQ
         }
 
         /// <summary>
-        /// Queues an input for handling, returning a unique ID with which to obtain results
+        /// Queues an input for handling
         /// </summary>
         /// <param name="input">The string from which command data will be parsed</param>
         /// <param name="ctx">A context object which is passed to the command method, and is used to convert data types</param>
@@ -126,11 +147,6 @@ namespace HQ
         public void HandleInput(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
-
-            if (callback == null)
-            {
-                throw new ArgumentNullException("callback");
-            }
 
             _queue.QueueInputHandling(input, ctx, callback);
         }
@@ -145,6 +161,32 @@ namespace HQ
 
             _queue.AddMetadata(new FormatVerifier(type).Run().Metadata);
             return this;
+        }
+
+        /// <summary>
+        /// Registers a scanner that scans received strings.
+        /// If a string matches the given pattern, the callback is invoked.
+        /// </summary>
+        /// <param name="pattern"></param>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        public CommandRegistry AddScanner(RegexString pattern, ScannerDelegate callback)
+        {
+            ThrowIfDisposed();
+
+            _queue.AddScanner(pattern, callback);
+            return this;
+        }
+
+        /// <summary>
+        /// Returns a copy of all the currently added command metadata
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<CommandMetadata> GetCommands()
+        {
+            ThrowIfDisposed();
+
+            return _queue.GetMetadata();
         }
 
         #region IDisposable Support
