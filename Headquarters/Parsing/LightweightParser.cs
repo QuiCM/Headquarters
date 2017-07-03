@@ -43,14 +43,26 @@ namespace HQ.Parsing
         /// Adds a Type to the list of types to be parsed
         /// </summary>
         /// <param name="type"></param>
+        /// <param name="paramData">An optional <see cref="CommandParameterAttribute"/> object providing rules for parsing the type</param>
         /// <returns></returns>
-        public LightweightParser AddType(Type type)
+        public LightweightParser AddType(Type type, CommandParameterAttribute paramData = null)
         {
-            return AddType((type, null));
+            return AddType((type, paramData));
         }
 
         /// <summary>
-        /// Parses the given input using the data added from <see cref="AddType(Type)"/>
+        /// Adds a type to the list of types to be parsed
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="paramData"></param>
+        /// <returns></returns>
+        public LightweightParser AddType<T>(CommandParameterAttribute paramData = null)
+        {
+            return AddType((typeof(T), paramData));
+        }
+
+        /// <summary>
+        /// Parses the given input using the data added from <see cref="AddType(Type, CommandParameterAttribute)"/>
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
