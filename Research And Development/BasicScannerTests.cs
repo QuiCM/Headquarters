@@ -18,14 +18,14 @@ namespace RnD
                 ManualResetEvent mre = new ManualResetEvent(false);
 
                 object output = null;
-                registry.AddScanner("Scanner pattern", (IContextObject ctx, string match, LightweightParser parser, ref bool finalize) =>
+                registry.AddScanner(@"Scanner \w+ \d+", (IContextObject ctx, string match, LightweightParser parser, ref bool finalize) =>
                 {
                     output = ScannerOutput;
                     mre.Set();
                     return ScannerOutput;
                 });
 
-                registry.HandleInput("Scanner pattern", null, null);
+                registry.HandleInput("Scanner pattern 123", null, null);
 
                 mre.WaitOne();
 

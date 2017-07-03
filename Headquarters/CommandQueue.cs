@@ -145,7 +145,6 @@ namespace HQ
 
             if (scanner != null)
             {
-                input = scanner.Pattern.RemoveMatchedString(input);
                 bool remove = false;
 
                 object result = scanner.Callback.Invoke(ctx, input, new LightweightParser(ctx), ref remove);
