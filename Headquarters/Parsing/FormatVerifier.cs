@@ -226,7 +226,10 @@ namespace HQ.Parsing
 
                 if (attr == null)
                 {
-                    attr = new CommandParameterAttribute(optional: param.IsOptional);
+                    attr = new CommandParameterAttribute(optional: param.IsOptional)
+                    {
+                        _generated = true
+                    };
                 }
 
                 if (index < formatParams.Count + 1)

@@ -104,7 +104,7 @@ namespace HQ.Parsing
             {
                 return;
             }
-            
+
             CommandExecutorData subcommand = ExecutorData.Subcommands.FirstOrDefault(
                 sub => sub.ExecutorAttribute.CommandMatcher.Matches(Input)
             );
@@ -142,11 +142,15 @@ namespace HQ.Parsing
 
                 if (kvp.Value.IsFormatParameter)
                 {
-                    RegexString matcher = ExecutorData.ExecutorAttribute.CommandMatcher;
-                    if (parameterIndex < matcher.FormatParameters.Count)
+                    //We only want to use the dynamically prepared argument length if one was not specified by the parameter attribute
+                    if (kvp.Value._generated)
                     {
-                        string fmtParam = matcher.FormatParameters[parameterIndex];
-                        count = matcher.FormatData[fmtParam];
+                        RegexString matcher = ExecutorData.ExecutorAttribute.CommandMatcher;
+                        if (parameterIndex < matcher.FormatParameters.Count)
+                        {
+                            string fmtParam = matcher.FormatParameters[parameterIndex];
+                            count = matcher.FormatData[fmtParam];
+                        }
                     }
                 }
 

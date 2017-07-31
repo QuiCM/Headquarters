@@ -29,9 +29,9 @@ namespace RnD
             /// <param name="word2">parsed from {word2}</param>
             /// <param name="num">defaults to 1 so that if not parsed correctly from the input string, the test will fail</param>
             /// <returns></returns>
-            [CommandExecutor("A unit testing command", @"unit-test {word} more words {word2} and a number",
+            [CommandExecutor("A unit testing command", @"unit-test {word} more words {word2}",
                 RegexStringOptions.None, "unit-test {word} more words {word2} and a number {optional: integer}")]
-            public object TestExecutor(IContextObject context, string word, string word2, int num = 1)
+            public object TestExecutor(IContextObject context, string word, [CommandParameter(repetitions: 2)] string word2, int num = 1)
             {
                 return word + word2 + num.ToString();
             }
@@ -47,7 +47,7 @@ namespace RnD
                 ManualResetEvent mre = new ManualResetEvent(false);
 
                 object testOutput = null;
-                registry.HandleInput($"unit-test {Output1} more words {Output2} and a number {Number}", null, (result, output) => { testOutput = output; mre.Set(); });
+                registry.HandleInput($"unit-test {Output1} more words {Output2} {Number}", null, (result, output) => { testOutput = output; mre.Set(); });
 
                 mre.WaitOne();
 
