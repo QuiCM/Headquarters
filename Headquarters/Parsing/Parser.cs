@@ -123,8 +123,10 @@ namespace HQ.Parsing
         /// <param name="ctx"></param>
         protected override void ConvertArgumentsToTypes(IContextObject ctx)
         {
+            //All commands start with an IContextObject parameter
             Objects = new List<object> { ctx };
-            int index = 0;
+            int argumentIndex = 0;
+            int parameterIndex = 0;
             IEnumerable<object> arguments = Input.ObjectiveExplode();
 
             if (AdditionalArgs != null)
@@ -135,23 +137,36 @@ namespace HQ.Parsing
             foreach (KeyValuePair<ParameterInfo, CommandParameterAttribute> kvp in ExecutorData.ParameterData)
             {
                 //Get the number of arguments going in to the parameter
-                int count = kvp.Value.Repetitions <= 0 ? arguments.Count() - index
+                int count = kvp.Value.Repetitions <= 0 ? arguments.Count() - argumentIndex
                                                         : kvp.Value.Repetitions;
 
-                if (index >= arguments.Count())
+                if (kvp.Value.IsFormatParameter)
+                {
+                    RegexString matcher = ExecutorData.ExecutorAttribute.CommandMatcher;
+                    if (parameterIndex < matcher.FormatParameters.Count)
+                    {
+                        string fmtParam = matcher.FormatParameters[parameterIndex];
+                        count = matcher.FormatData[fmtParam];
+                    }
+                }
+
+                if (argumentIndex >= arguments.Count())
                 {
                     //If we've used all our arguments, just add empty ones to satisfy the
                     //method signature for the command
                     Objects.Add(ObjectCreator.CreateDefaultObject(kvp.Key));
+                    parameterIndex++;
                     continue;
                 }
 
-                object[] args = arguments.ReadToArray(index, count);
+                object[] args = arguments.ReadToArray(argumentIndex, count);
 
                 //If the provided object is already of the required type, add and continue
                 if (count == 1 && args[0].GetType() == kvp.Key.ParameterType)
                 {
                     Objects.Add(args[0]);
+                    argumentIndex += count;
+                    parameterIndex++;
                     continue;
                 }
 
@@ -179,7 +194,8 @@ namespace HQ.Parsing
                     Objects.Add(conversion);
                 }
 
-                index += count;
+                parameterIndex++;
+                argumentIndex += count;
             }
         }
     }

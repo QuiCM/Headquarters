@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace HQ
@@ -8,6 +9,8 @@ namespace HQ
     /// </summary>
     public class RegexString
     {
+        private static readonly Regex FormatRegex = new Regex(@"{(?<format>[\w]+)}");
+
         private Regex _regex;
         private string _string;
         private bool _matchStart;
@@ -20,6 +23,14 @@ namespace HQ
         /// Options describing how this RegexString will function
         /// </summary>
         public RegexStringOptions Options { get; set; }
+        /// <summary>
+        /// Format parameter groups present in the regex string
+        /// </summary>
+        public List<string> FormatParameters { get; private set; } = new List<string>();
+        /// <summary>
+        /// Links a format parameter group name to the length of its captured string
+        /// </summary>
+        public Dictionary<string, int> FormatData { get; private set; } = new Dictionary<string, int>();
 
         /// <summary>
         /// Constructs a new RegexString with the given string and <see cref="RegexStringOptions"/>
@@ -42,6 +53,15 @@ namespace HQ
                     //'$' is the regex modifier to assert that the match must end at the end of the string
                     regexPattern = regexPattern + "$";
                 }
+                
+                regexPattern = FormatRegex.Replace(regexPattern, (match) =>
+                {
+                    string arg = match.Groups["format"].Value;
+                    FormatParameters.Add(arg);
+                    FormatData.Add(arg, 0);
+
+                    return $"(?<{arg}>.+)";
+                });
 
                 _regex = new Regex(regexPattern, !options.HasFlag(RegexStringOptions.CaseSensitive) ? RegexOptions.IgnoreCase : RegexOptions.None);
             }
@@ -97,10 +117,25 @@ namespace HQ
             {
                 if (_match.Success)
                 {
-                    return input.Remove(0, _match.Length);
+                    System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                    foreach (string group in _regex.GetGroupNames())
+                    {
+                        if (group == "0")
+                        {
+                            //'0' is the entire match, and not an explicitly defined named match
+                            continue;
+                        }
+                        //Each matched group should be added to the parameters required for parsing
+                        sb.Append(_match.Groups[group]).Append(" ");
+                        //And format data should be populated with the number of strings captured, for dynamically sizing format parameters
+                        FormatData[group] = _match.Groups[group].Value.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).Length;
+                    }
+                    sb.Append(input.Remove(0, _match.Length));
+
+                    return sb.ToString();
                 }
 
-                throw new InvalidOperationException($"Matching error - {nameof(RegexString)}.{nameof(Matches)} must be called before removing the matched string.");
+                throw new InvalidOperationException($"Matching error - {nameof(RegexString)}.{nameof(Matches)} must succeed before removing the matched string.");
             }
             else
             {

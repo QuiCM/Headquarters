@@ -171,6 +171,11 @@ namespace HQ.Parsing
             {
                 inner = new InvalidCastException($"Parameter '{parameters[0].Name}' of type '{parameters[0].ParameterType.Name}' must be castable to type '{nameof(IContextObject)}'.");
             }
+            else if (parameters.Length <= data.ExecutorAttribute.CommandMatcher.FormatParameters.Count())
+            {
+                inner = new Exception($"Method requires at least {data.ExecutorAttribute.CommandMatcher.FormatParameters.Count()}"
+                    + $"parameters to satisfy its format parameters, but only provides {parameters.Length}.");
+            }
 
             if (inner != null)
             {
@@ -212,16 +217,33 @@ namespace HQ.Parsing
             requiredArgumentCount = 0;
             Dictionary<ParameterInfo, CommandParameterAttribute> paramData = new Dictionary<ParameterInfo, CommandParameterAttribute>();
 
+            List<string> formatParams = executor.ExecutorAttribute.CommandMatcher.FormatParameters;
+            int index = 1;
+
             foreach (ParameterInfo param in parameters)
             {
                 CommandParameterAttribute attr = param.GetCustomAttribute<CommandParameterAttribute>();
 
                 if (attr == null)
                 {
-                    attr = new CommandParameterAttribute(param.IsOptional);
+                    attr = new CommandParameterAttribute(optional: param.IsOptional);
                 }
 
-                paramData.Add(param, attr);
+                if (index < formatParams.Count + 1)
+                {
+                    //Format parameters should go ahead of normal parameters.
+                    //+ 1 and - 1 are used to account for the required IContextObject parameter
+                    if (param.Name != formatParams[index - 1])
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.InvalidParameter,
+                            $"Parameter '{param.Name}' does not match equivalent format parameter. Should be '{formatParams[index - 1]}'."
+                        );
+                    }
+
+                    attr.IsFormatParameter = true;
+                    index++;
+                }
 
                 if (optionalFound && !attr.Optional)
                 {
@@ -252,6 +274,8 @@ namespace HQ.Parsing
                 {
                     requiredArgumentCount += attr.Repetitions;
                 }
+
+                paramData.Add(param, attr);
             }
 
             executor.ParameterData = paramData;

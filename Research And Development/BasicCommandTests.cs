@@ -56,7 +56,7 @@ namespace RnD
 
                 mre.WaitOne();
 
-                Assert.AreEqual(testOutput, CommandOutput);
+                Assert.AreEqual(CommandOutput, testOutput);
             }
         }
     }

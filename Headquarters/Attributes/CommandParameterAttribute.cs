@@ -17,6 +17,11 @@ namespace HQ.Attributes
         /// Whether or not the parameter is optional
         /// </summary>
         public bool Optional { get; set; } = false;
+        /// <summary>
+        /// Whether or not this parameter was specified as a format parameter.
+        /// Format parameters dynamically handle repetitions at runtime
+        /// </summary>
+        public bool IsFormatParameter { get; set; } = false;
 
         /// <summary>
         /// Creates a new <see cref="CommandParameterAttribute"/> with 1 mandatory repetition
