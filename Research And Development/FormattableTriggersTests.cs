@@ -30,7 +30,7 @@ namespace RnD
             /// <param name="num">defaults to 1 so that if not parsed correctly from the input string, the test will fail</param>
             /// <returns></returns>
             [CommandExecutor("A unit testing command", @"unit-test {word} more words {word2}",
-                RegexStringOptions.None, "unit-test {word} more words {word2} and a number {optional: integer}")]
+                RegexStringOptions.None, "unit-test {word} more words {word2} {optional: integer}")]
             public object TestExecutor(IContextObject context, string word, [CommandParameter(repetitions: 2)] string word2, int num = 1)
             {
                 return word + word2 + num.ToString();
