@@ -19,7 +19,9 @@ namespace HQ.Attributes
         /// <summary>
         /// A human-readable name for the command
         /// </summary>
-        public string FriendlyName { get; }
+        public string FriendlyName => _friendlyName ?? CommandMatcher?.ToString();
+
+        private string _friendlyName;
 
         /// <summary>
         /// Constructs a new CommandExecutorAttribute using the given <see cref="RegexString"/>s to match input to the command
@@ -32,7 +34,7 @@ namespace HQ.Attributes
         {
             Description = description;
             CommandMatcher = new RegexString(commandMatcher, matcherOptions);
-            FriendlyName = friendlyName;
+            _friendlyName = friendlyName;
         }
     }
 }
