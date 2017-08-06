@@ -37,7 +37,7 @@ namespace HQ.Attributes
         /// <summary>
         /// Creates a new <see cref="CommandParameterAttribute"/> with a number of mandatory repetition
         /// </summary>
-        /// <param name="repetitions">The number of times the parameter type should be repeated</param>
+        /// <param name="repetitions">The number of arguments to be condensed into the parameter</param>
         public CommandParameterAttribute(int repetitions)
         {
             Repetitions = repetitions;

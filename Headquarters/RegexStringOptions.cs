@@ -21,12 +21,8 @@ namespace HQ
         /// </summary>
         MatchAtEnd = 2,
         /// <summary>
-        /// Creates the RegexString without a regex
-        /// </summary>
-        PlainText = 4,
-        /// <summary>
         /// Enforces case-sensitive matching
         /// </summary>
-        CaseSensitive = 8
+        CaseSensitive = 4
     }
 }

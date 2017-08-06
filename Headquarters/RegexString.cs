@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace HQ
 {
     /// <summary>
-    /// A String that may or may not also be a <see cref="Regex"/>
+    /// A Regex matching string designed for parsing command triggers
     /// </summary>
     public class RegexString
     {
@@ -40,31 +40,28 @@ namespace HQ
         public RegexString(string pattern, RegexStringOptions options)
         {
             Options = options;
-            if (!options.HasFlag(RegexStringOptions.PlainText))
+            string regexPattern = pattern;
+            if (options.HasFlag(RegexStringOptions.MatchFromStart))
             {
-                string regexPattern = pattern;
-                if (options.HasFlag(RegexStringOptions.MatchFromStart))
-                {
-                    //'^' is the regex modifier to assert that the match must begin at the start of the string
-                    regexPattern = "^" + regexPattern;
-                }
-                if (options.HasFlag(RegexStringOptions.MatchAtEnd))
-                {
-                    //'$' is the regex modifier to assert that the match must end at the end of the string
-                    regexPattern = regexPattern + "$";
-                }
-                
-                regexPattern = FormatRegex.Replace(regexPattern, (match) =>
-                {
-                    string arg = match.Groups["format"].Value;
-                    FormatParameters.Add(arg);
-                    FormatData.Add(arg, 0);
-
-                    return $"(?<{arg}>.+)";
-                });
-
-                _regex = new Regex(regexPattern, !options.HasFlag(RegexStringOptions.CaseSensitive) ? RegexOptions.IgnoreCase : RegexOptions.None);
+                //'^' is the regex modifier to assert that the match must begin at the start of the string
+                regexPattern = "^" + regexPattern;
             }
+            if (options.HasFlag(RegexStringOptions.MatchAtEnd))
+            {
+                //'$' is the regex modifier to assert that the match must end at the end of the string
+                regexPattern = regexPattern + "$";
+            }
+
+            regexPattern = FormatRegex.Replace(regexPattern, (match) =>
+            {
+                string arg = match.Groups["format"].Value;
+                FormatParameters.Add(arg);
+                FormatData.Add(arg, 0);
+
+                return $"(?<{arg}>.+)";
+            });
+
+            _regex = new Regex(regexPattern, !options.HasFlag(RegexStringOptions.CaseSensitive) ? RegexOptions.IgnoreCase : RegexOptions.None);
 
             _matchStart = options.HasFlag(RegexStringOptions.MatchFromStart);
             _matchEnd = options.HasFlag(RegexStringOptions.MatchAtEnd);
