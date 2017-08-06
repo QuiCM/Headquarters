@@ -63,13 +63,22 @@ namespace HQ
         /// Gets an IObjectConverter for the given type
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="conversionType"></param>
         /// <returns></returns>
-        public IObjectConverter GetConverter<T>(T conversionType) where T : Type
+        public IObjectConverter GetConverter<T>()
+        {
+            return GetConverter(typeof(T));
+        }
+
+        /// <summary>
+        /// Gets an IObjectConverter for the given type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public IObjectConverter GetConverter(Type type)
         {
             ThrowIfDisposed();
 
-            if (_converters.TryGetValue(conversionType, out IObjectConverter converter))
+            if (_converters.TryGetValue(type, out IObjectConverter converter))
             {
                 return converter;
             }
@@ -149,6 +158,16 @@ namespace HQ
             ThrowIfDisposed();
 
             _queue.QueueInputHandling(input, ctx, callback);
+        }
+
+        /// <summary>
+        /// Registers a type as a command container
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public CommandRegistry AddCommand<T>()
+        {
+            return AddCommand(typeof(T));
         }
 
         /// <summary>
