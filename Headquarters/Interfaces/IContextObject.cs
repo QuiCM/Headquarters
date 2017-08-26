@@ -20,6 +20,10 @@ namespace HQ.Interfaces
         /// Objects stored via a name using <see cref="Store(string, object)"/>
         /// </summary>
         ConcurrentDictionary<string, object> NamedStorage { get; }
+        /// <summary>
+        /// Whether or not this context should be reused, or flagged as deleted
+        /// </summary>
+        bool Finalized { get; set; }
 
         /// <summary>
         /// Stores an object, making it accessible via <see cref="Retrieve{T}()"/>

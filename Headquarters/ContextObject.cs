@@ -28,6 +28,12 @@ namespace HQ
         /// </summary>
         public CommandRegistry Registry { get; }
 
+        /// <inheritdoc/>
+        /// <summary>
+        /// See <see cref="IContextObject.Finalized"/>
+        /// </summary>
+        public bool Finalized { get; set; }
+
         /// <summary>
         /// Constructs a new context object using the given command registry
         /// </summary>
@@ -43,6 +49,8 @@ namespace HQ
         /// </summary>
         public T Retrieve<T>()
         {
+            ThrowIfFinalized();
+
             if (TypedStorage.TryGetValue(typeof(T), out object value))
             {
                 return (T)value;
@@ -57,6 +65,8 @@ namespace HQ
         /// </summary>
         public T Retrieve<T>(string identifier)
         {
+            ThrowIfFinalized();
+
             if (NamedStorage.TryGetValue(identifier, out object value))
             {
                 return (T)value;
@@ -74,7 +84,9 @@ namespace HQ
         /// <returns></returns>
         public bool TryRetrieve<T>(out T value)
         {
-            if( TypedStorage.TryGetValue(typeof(T), out object val))
+            ThrowIfFinalized();
+
+            if ( TypedStorage.TryGetValue(typeof(T), out object val))
             {
                 value = (T)val;
                 return true;
@@ -94,6 +106,8 @@ namespace HQ
         /// <returns></returns>
         public bool TryRetrieve<T>(string identifier, out T value)
         {
+            ThrowIfFinalized();
+
             if (NamedStorage.TryGetValue(identifier, out object val))
             {
                 value = (T)val;
@@ -110,6 +124,7 @@ namespace HQ
         /// </summary>
         public void Store<T>(object obj)
         {
+            ThrowIfFinalized();
             //Replace the old object with the new if an old object exists, or add a new object
             TypedStorage.AddOrUpdate(typeof(T), obj, (type, existing) => obj);
         }
@@ -120,8 +135,17 @@ namespace HQ
         /// </summary>
         public void Store(string name, object obj)
         {
+            ThrowIfFinalized();
             //Replace the old object with the new if an old object exists, or add a new object
             NamedStorage.AddOrUpdate(name, obj, (n, existing) => obj);
+        }
+
+        private void ThrowIfFinalized()
+        {
+            if (Finalized)
+            {
+                throw new InvalidOperationException("This context has been finalized.");
+            }
         }
     }
 }

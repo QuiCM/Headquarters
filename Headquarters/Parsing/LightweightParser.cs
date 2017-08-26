@@ -69,6 +69,7 @@ namespace HQ.Parsing
         public LightweightParser Parse(string input)
         {
             IEnumerable<object> arguments = input.ObjectiveExplode();
+            //Index holds the current position inside the 'arguments' enumerable
             int index = 0;
 
             foreach ((Type type, CommandParameterAttribute param) parserData in _data)
@@ -90,6 +91,7 @@ namespace HQ.Parsing
                 if (count == 1 && args[0].GetType() == type)
                 {
                     _conversions.Enqueue(args[0]);
+                    index++;
                     continue;
                 }
 

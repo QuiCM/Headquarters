@@ -198,6 +198,21 @@ namespace HQ
         }
 
         /// <summary>
+        /// Registers a scanner that scans received strings.
+        /// If a string matches the given pattern, the callback is invoked asynchronously.
+        /// </summary>
+        /// <param name="pattern"></param>
+        /// <param name="asyncCallback"></param>
+        /// <returns></returns>
+        public CommandRegistry AddAsyncScanner(RegexString pattern, AsyncScannerDelegate asyncCallback)
+        {
+            ThrowIfDisposed();
+
+            _queue.AddScanner(pattern, asyncCallback);
+            return this;
+        }
+
+        /// <summary>
         /// Returns a copy of all the currently added command metadata
         /// </summary>
         /// <returns></returns>
