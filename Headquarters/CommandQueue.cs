@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace HQ
 {
@@ -30,12 +31,21 @@ namespace HQ
         internal class ScannerData
         {
             internal RegexString Pattern { get; }
-            internal ScannerDelegate Callback { get; }
+            internal object Callback { get; }
+            internal bool Async { get; }
 
             internal ScannerData(RegexString pattern, ScannerDelegate callback)
             {
                 Pattern = pattern;
                 Callback = callback;
+                Async = false;
+            }
+
+            internal ScannerData(RegexString pattern, AsyncScannerDelegate callback)
+            {
+                Pattern = pattern;
+                Callback = callback;
+                Async = true;
             }
         }
 
@@ -46,6 +56,7 @@ namespace HQ
         private List<CommandMetadata> _metadata;
         private CancellationTokenSource _tokenSource;
         private Object _lock;
+        private Object _scanLock;
         private ManualResetEvent _mre;
         private CommandRegistry _registry;
         private List<ScannerData> _scanners;
@@ -65,6 +76,7 @@ namespace HQ
             _metadata = new List<CommandMetadata>();
             _scanners = new List<ScannerData>();
             _lock = new Object();
+            _scanLock = new Object();
             _mre = new ManualResetEvent(false);
         }
 
@@ -93,6 +105,18 @@ namespace HQ
             ThrowIfDisposed();
 
             _scanners.Add(new ScannerData(pattern, callback));
+        }
+
+        /// <summary>
+        /// Adds a new scanner that may execute asynchronously
+        /// </summary>
+        /// <param name="pattern">The scanner's pattern</param>
+        /// <param name="asyncCallback">The scanner's callback</param>
+        public void AddScanner(RegexString pattern, AsyncScannerDelegate asyncCallback)
+        {
+            ThrowIfDisposed();
+
+            _scanners.Add(new ScannerData(pattern, asyncCallback));
         }
 
         /// <summary>
@@ -141,20 +165,17 @@ namespace HQ
                 return false;
             }
 
-            ScannerData scanner = _scanners.FirstOrDefault(s => s.Pattern.Matches(input));
+            ScannerData scanner;
+            //Synchronize access to the collection to prevent collisions
+            lock (_scanLock)
+            {
+                List<ScannerData> scanners = _scanners.Where(s => s.Pattern.Matches(input)).ToList();
+                scanner = scanners.FirstOrDefault();
+            }
 
             if (scanner != null)
             {
-                bool remove = false;
-
-                object result = scanner.Callback.Invoke(ctx, input, new LightweightParser(ctx), ref remove);
-                callback?.Invoke(InputResult.Scanner, result);
-
-                if (remove)
-                {
-                    _scanners.Remove(scanner);
-                }
-
+                new Thread(() => ScannerCallback(ctx, scanner, input, callback)).Start();
                 return true;
             }
 
@@ -185,6 +206,37 @@ namespace HQ
             ThrowIfDisposed();
             _tokenSource.Cancel();
             _mre.Set();
+        }
+
+        /// <summary>
+        /// Invoked when a scanner is used to parse a message
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <param name="scanner"></param>
+        /// <param name="input"></param>
+        /// <param name="callback"></param>
+        private void ScannerCallback(IContextObject ctx, ScannerData scanner, string input, InputResultDelegate callback)
+        {
+            if (scanner.Async)
+            {
+                //Async scanners need to be invoked as a task
+                Task<object> result = ((AsyncScannerDelegate)scanner.Callback).Invoke(ctx, input, new LightweightParser(ctx));
+                callback?.Invoke(InputResult.Scanner, result.GetAwaiter().GetResult());
+            }
+            else
+            {
+                object result = ((ScannerDelegate)scanner.Callback).Invoke(ctx, input, new LightweightParser(ctx));
+                callback?.Invoke(InputResult.Scanner, result);
+            }
+
+            if (ctx.Finalized)
+            {
+                //Synchronize access to the collection so that nothing is removed while something else is added
+                lock (_scanLock)
+                {
+                    _scanners.Remove(scanner);
+                }
+            }
         }
 
         private void ParserThreadCallback()
