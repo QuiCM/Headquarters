@@ -26,11 +26,32 @@ namespace HQ.Interfaces
         bool Finalized { get; set; }
 
         /// <summary>
+        /// Gets or sets the value of the key referenced by <paramref name="name"/>
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        dynamic this[string name] { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value of the key referenced by <paramref name="type"/>
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        dynamic this[Type type] { get; set; }
+
+        /// <summary>
         /// Stores an object, making it accessible via <see cref="Retrieve{T}()"/>
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="obj"></param>
         void Store<T>(object obj);
+
+        /// <summary>
+        /// Stores an object, making it accessible via <see cref="Retrieve{T}()"/> and <see cref="Retrieve{T}(Type)"/>
+        /// </summary>
+        /// <param name="t"></param>
+        /// <param name="obj"></param>
+        void Store(Type t, object obj);
 
         /// <summary>
         /// Stores an object using a named identifier, making it accessible via <see cref="Retrieve{T}(string)"/>
@@ -45,6 +66,14 @@ namespace HQ.Interfaces
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         T Retrieve<T>();
+
+        /// <summary>
+        /// Retrieves an object of a given type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        T Retrieve<T>(Type t);
 
         /// <summary>
         /// Retrieves an object with a given name

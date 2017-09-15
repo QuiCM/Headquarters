@@ -10,17 +10,20 @@ namespace HQ
     /// </summary>
     public class ContextObject : IContextObject
     {
+        private ConcurrentDictionary<Type, object> _typedStorage = new ConcurrentDictionary<Type, object>();
+        private ConcurrentDictionary<string, object> _namedStorage = new ConcurrentDictionary<string, object>();
+
         /// <inheritdoc/>
         /// <summary>
         /// See <see cref="IContextObject.TypedStorage"/>
         /// </summary>
-        public ConcurrentDictionary<Type, object> TypedStorage => new ConcurrentDictionary<Type, object>();
+        public ConcurrentDictionary<Type, object> TypedStorage => _typedStorage;
 
         /// <inheritdoc/>
         /// <summary>
         /// See <see cref="IContextObject.NamedStorage"/>
         /// </summary>
-        public ConcurrentDictionary<string, object> NamedStorage => new ConcurrentDictionary<string, object>();
+        public ConcurrentDictionary<string, object> NamedStorage => _namedStorage;
 
         /// <inheritdoc/>
         /// <summary>
@@ -33,6 +36,26 @@ namespace HQ
         /// See <see cref="IContextObject.Finalized"/>
         /// </summary>
         public bool Finalized { get; set; }
+
+        /// <inheritdoc/>
+        /// <summary>
+        /// See <see cref="IContextObject.this[Type]"/>
+        /// </summary>
+        public dynamic this[Type type]
+        {
+            get => Retrieve<dynamic>(type);
+            set => Store(type, value);
+        }
+
+        /// <inheritdoc/>
+        /// <summary>
+        /// See <see cref="IContextObject.this[string]"/>
+        /// </summary>
+        public dynamic this[string name]
+        {
+            get => Retrieve<dynamic>(name);
+            set => Store(name, value);
+        }
 
         /// <summary>
         /// Constructs a new context object using the given command registry
@@ -47,11 +70,17 @@ namespace HQ
         /// <summary>
         /// See <see cref="IContextObject.Retrieve{T}()"/>
         /// </summary>
-        public T Retrieve<T>()
+        public T Retrieve<T>() => Retrieve<T>(typeof(T));
+
+        /// <inheritdoc/>
+        /// <summary>
+        /// See <see cref="IContextObject.Retrieve{T}(Type)"/>
+        /// </summary>
+        public T Retrieve<T>(Type type)
         {
             ThrowIfFinalized();
 
-            if (TypedStorage.TryGetValue(typeof(T), out object value))
+            if (TypedStorage.TryGetValue(type, out object value))
             {
                 return (T)value;
             }
@@ -122,11 +151,17 @@ namespace HQ
         /// <summary>
         /// See <see cref="IContextObject.Store{T}(object)"/>
         /// </summary>
-        public void Store<T>(object obj)
+        public void Store<T>(object obj) => Store(typeof(T), obj);
+
+        /// <inheritdoc/>
+        /// <summary>
+        /// See <see cref="IContextObject.Store(Type, object)"/>
+        /// </summary>
+        public void Store(Type type, object obj)
         {
             ThrowIfFinalized();
             //Replace the old object with the new if an old object exists, or add a new object
-            TypedStorage.AddOrUpdate(typeof(T), obj, (type, existing) => obj);
+            TypedStorage.AddOrUpdate(type, obj, (t, existing) => obj);
         }
 
         /// <inheritdoc/>
