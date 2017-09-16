@@ -61,7 +61,7 @@ namespace RnD
                 ContextObject context = new ContextObject(registry);
                 context[ThisName] = Output;
 
-                object testOutput = null;
+                dynamic testOutput = null;
                 registry.HandleInput($"unit-test string", context, (result, output) => { testOutput = output; mre.Set(); });
 
                 mre.WaitOne();
@@ -82,7 +82,7 @@ namespace RnD
                 ContextObject context = new ContextObject(registry);
                 context[ThisType] = Output;
 
-                object testOutput = null;
+                dynamic testOutput = null;
                 registry.HandleInput($"unit-test type", context, (result, output) => { testOutput = output; mre.Set(); });
 
                 mre.WaitOne();
