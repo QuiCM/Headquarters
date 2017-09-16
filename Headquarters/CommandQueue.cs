@@ -256,7 +256,7 @@ namespace HQ
                 }
 
                 //The vertical bar is a pipe character. inputA | inputB = run command B with the output of command A
-                string[] inputs = data.Input.Split('|');
+                string[] inputs = data.Input.Split(new[] { _registry.Settings.PipeCharacter }, StringSplitOptions.None);
 
                 if (inputs.Length > 1)
                 {

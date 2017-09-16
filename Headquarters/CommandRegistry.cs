@@ -21,9 +21,12 @@ namespace HQ
     /// </summary>
     public class CommandRegistry : IDisposable
     {
+        private RegistrySettings _settings;
         private CommandQueue _queue;
         private ConcurrentDictionary<Type, IObjectConverter> _converters;
         private Type _parser = typeof(Parser);
+
+        public RegistrySettings Settings => _settings;
 
         /// <summary>
         /// A concurrent dictionary with Types as keys, and IObjectConverters to convert those Types as values
@@ -124,6 +127,8 @@ namespace HQ
         /// <param name="settings"></param>
         public CommandRegistry(RegistrySettings settings)
         {
+            _settings = settings;
+
             _converters = new ConcurrentDictionary<Type, IObjectConverter>();
             if (settings.EnableDefaultConverters)
             {
