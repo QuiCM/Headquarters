@@ -140,17 +140,14 @@ namespace HQ.Parsing
                 int count = kvp.Value.Repetitions <= 0 ? arguments.Count() - argumentIndex
                                                         : kvp.Value.Repetitions;
 
-                if (kvp.Value.IsFormatParameter)
+                //We only want to use the dynamically prepared argument length if one was not specified by the parameter attribute
+                if (kvp.Value._generated)
                 {
-                    //We only want to use the dynamically prepared argument length if one was not specified by the parameter attribute
-                    if (kvp.Value._generated)
+                    RegexString matcher = ExecutorData.ExecutorAttribute.CommandMatcher;
+                    if (parameterIndex < matcher.FormatParameters.Count)
                     {
-                        RegexString matcher = ExecutorData.ExecutorAttribute.CommandMatcher;
-                        if (parameterIndex < matcher.FormatParameters.Count)
-                        {
-                            string fmtParam = matcher.FormatParameters[parameterIndex];
-                            count = matcher.FormatData[fmtParam];
-                        }
+                        string fmtParam = matcher.FormatParameters[parameterIndex];
+                        count = matcher.FormatData[fmtParam].Repetitions;
                     }
                 }
 

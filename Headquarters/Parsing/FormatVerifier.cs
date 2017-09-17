@@ -114,6 +114,7 @@ namespace HQ.Parsing
         /// <exception cref="CommandParsingException">Thrown if the executor does not follow command executor style rules</exception>
         public void DiscoverExecutors()
         {
+            //Selects all methods present on the type that are decorated with CommandExecutorAttributes
             _executors = (from methodInfo in _type.GetRuntimeMethods().Where(m => m.GetCustomAttribute<CommandExecutorAttribute>() != null
                           && !(m.GetCustomAttribute<CommandExecutorAttribute>() is SubcommandExecutorAttribute))
                           select new CommandExecutorData
@@ -218,6 +219,8 @@ namespace HQ.Parsing
             Dictionary<ParameterInfo, CommandParameterAttribute> paramData = new Dictionary<ParameterInfo, CommandParameterAttribute>();
 
             List<string> formatParams = executor.ExecutorAttribute.CommandMatcher.FormatParameters;
+            //Index refers to the current index of the parameter being investigated.
+            //It is offset by 1 (index - 1) to retrieve the format parameter from formatParams that matches the parameter info
             int index = 1;
 
             foreach (ParameterInfo param in parameters)
@@ -234,8 +237,7 @@ namespace HQ.Parsing
 
                 if (index < formatParams.Count + 1)
                 {
-                    //Format parameters should go ahead of normal parameters.
-                    //+ 1 and - 1 are used to account for the required IContextObject parameter
+                    
                     if (param.Name != formatParams[index - 1])
                     {
                         throw new CommandParsingException(
@@ -244,41 +246,40 @@ namespace HQ.Parsing
                         );
                     }
 
-                    attr.IsFormatParameter = true;
                     index++;
-                }
 
-                if (optionalFound && !attr.Optional)
-                {
-                    throw new CommandParsingException(
-                        ParserFailReason.InvalidParameter,
-                        $"Parameter '{param.Name}' is required, but follows an optional parameter."
-                    );
-                }
+                    if (optionalFound && !attr.Optional)
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.InvalidParameter,
+                            $"Parameter '{param.Name}' is required, but follows an optional parameter."
+                        );
+                    }
 
-                if (unknownLengthFound)
-                {
-                    throw new CommandParsingException(
-                        ParserFailReason.InvalidParameter,
-                        $"Parameter '{param.Name}' follows an unknown-length parameter."
-                    );
-                }
+                    if (unknownLengthFound)
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.InvalidParameter,
+                            $"Parameter '{param.Name}' follows an unknown-length parameter."
+                        );
+                    }
 
-                if (attr.Optional)
-                {
-                    optionalFound = true;
-                }
-                if (attr.Repetitions < 1)
-                {
-                    unknownLengthFound = true;
-                    requiredArgumentCount = -1;
-                }
-                if (!attr.Optional)
-                {
-                    requiredArgumentCount += attr.Repetitions;
-                }
+                    if (attr.Optional)
+                    {
+                        optionalFound = true;
+                    }
+                    if (attr.Repetitions < 1)
+                    {
+                        unknownLengthFound = true;
+                        requiredArgumentCount = -1;
+                    }
+                    if (!attr.Optional)
+                    {
+                        requiredArgumentCount += attr.Repetitions;
+                    }
 
-                paramData.Add(param, attr);
+                    paramData.Add(param, attr);
+                }
             }
 
             executor.ParameterData = paramData;

@@ -10,7 +10,7 @@ namespace HQ
     /// </summary>
     public class RegexString
     {
-        private static readonly Regex FormatRegex = new Regex(@"{(?<format>[\w]+)}");
+        private static readonly Regex FormatRegex = new Regex(@"{(?<format>[\w]+\??)}");
 
         private Regex _regex;
         private string _string;
@@ -65,10 +65,12 @@ namespace HQ
                 FormatParameters.Add(arg);
                 FormatData.Add(arg, new CommandParameterAttribute(repetitions: 0, optional: optional));
 
-                return $"(?<{arg}>.+){(optional ? "?" : "")}";
+                //("[^"]*"|[^"]+) => matches "First word" more words "third and more words" in 3 groups
+                return $"(?<{arg}>\"[^\"]*\"|[^\"]+){(optional ? "?" : "")}";
             });
 
             _regex = new Regex(regexPattern, !options.HasFlag(RegexStringOptions.CaseSensitive) ? RegexOptions.IgnoreCase : RegexOptions.None);
+            _string = regexPattern;
         }
 
         /// <summary>
@@ -102,10 +104,21 @@ namespace HQ
                         //'0' is the entire match, and not an explicitly defined named match, so we skip it
                         continue;
                     }
+                    string value = _match.Groups[group].Value;
+
                     //Each matched group should be added to the parameters required for parsing
-                    sb.Append(_match.Groups[group]).Append(" ");
+                    sb.Append(value).Append(" ");
                     //And format data should be populated with the number of strings captured, for dynamically sizing format parameters
-                    FormatData[group].Repetitions = _match.Groups[group].Value.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).Length;
+                    if (value.StartsWith("\""))
+                    {
+                        //The regex splits quoted messages separately. I.e., "word \"word 2\" word3" -> "word", "word 2", "word3".
+                        //Quoted messages should only count for 1 repetition.
+                        FormatData[group].Repetitions = 1;
+                    }
+                    else
+                    {
+                        FormatData[group].Repetitions = value.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).Length;
+                    }
                 }
                 sb.Append(input.Remove(0, _match.Length));
 

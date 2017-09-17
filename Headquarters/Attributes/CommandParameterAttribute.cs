@@ -13,7 +13,6 @@ namespace HQ.Attributes
         /// If false, the parameter attribute was explicitly created, and its values should not be overriden by other logic
         /// </summary>
         internal bool _generated = false;
-
         /// <summary>
         /// The number of arguments expected to be condensed into the parameter.
         /// For example, Repetitions = 3 would result in 3 arguments being used to create the parameter
@@ -23,11 +22,6 @@ namespace HQ.Attributes
         /// Whether or not the parameter is optional
         /// </summary>
         public bool Optional { get; set; } = false;
-        /// <summary>
-        /// Whether or not this parameter was specified as a format parameter.
-        /// Format parameters dynamically handle repetitions at runtime
-        /// </summary>
-        public bool IsFormatParameter { get; set; } = false;
 
         /// <summary>
         /// Creates a new <see cref="CommandParameterAttribute"/> with 1 mandatory repetition
