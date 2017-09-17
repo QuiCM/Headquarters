@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HQ.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -13,9 +14,6 @@ namespace HQ
 
         private Regex _regex;
         private string _string;
-        private bool _matchStart;
-        private bool _matchEnd;
-        private bool _caseSensitive;
         private Match _match;
         private bool _matches;
 
@@ -30,7 +28,7 @@ namespace HQ
         /// <summary>
         /// Links a format parameter group name to the length of its captured string
         /// </summary>
-        public Dictionary<string, int> FormatData { get; private set; } = new Dictionary<string, int>();
+        public Dictionary<string, CommandParameterAttribute> FormatData { get; private set; } = new Dictionary<string, CommandParameterAttribute>();
 
         /// <summary>
         /// Constructs a new RegexString with the given string and <see cref="RegexStringOptions"/>
@@ -55,19 +53,22 @@ namespace HQ
             regexPattern = FormatRegex.Replace(regexPattern, (match) =>
             {
                 string arg = match.Groups["format"].Value;
-                FormatParameters.Add(arg);
-                FormatData.Add(arg, 0);
+                bool optional = false;
 
-                return $"(?<{arg}>.+)";
+                //a ? makes the format param optional
+                if (arg.EndsWith("?") || arg.StartsWith("?"))
+                {
+                    arg = arg.Replace("?", "");
+                    optional = true;
+                }
+
+                FormatParameters.Add(arg);
+                FormatData.Add(arg, new CommandParameterAttribute(repetitions: 0, optional: optional));
+
+                return $"(?<{arg}>.+){(optional ? "?" : "")}";
             });
 
             _regex = new Regex(regexPattern, !options.HasFlag(RegexStringOptions.CaseSensitive) ? RegexOptions.IgnoreCase : RegexOptions.None);
-
-            _matchStart = options.HasFlag(RegexStringOptions.MatchFromStart);
-            _matchEnd = options.HasFlag(RegexStringOptions.MatchAtEnd);
-
-            _caseSensitive = options.HasFlag(RegexStringOptions.CaseSensitive);
-            _string = _caseSensitive ? pattern : pattern.ToLowerInvariant();
         }
 
         /// <summary>
@@ -77,25 +78,7 @@ namespace HQ
         /// <returns></returns>
         public bool Matches(string input)
         {
-            if (_regex != null)
-            {
-                return _matches = (_match = _regex.Match(input)).Success;
-            }
-
-            if (_matchStart)
-            {
-                if (_matchEnd)
-                {
-                    //String must be exactly equal
-                    return _matches = _caseSensitive ? input == _string : input.ToLowerInvariant() == _string;
-                }
-
-                //String must start with match
-                return _matches = _caseSensitive ? input.StartsWith(_string) : input.ToLowerInvariant().StartsWith(_string);
-            }
-
-            //String must contain match
-            return _matches = _caseSensitive ? input.Contains(_string) : input.ToLowerInvariant().Contains(_string);
+            return _matches = (_match = _regex.Match(input)).Success;
         }
 
         /// <summary>
@@ -109,49 +92,27 @@ namespace HQ
             {
                 return input;
             }
-
-            if (_regex != null)
+            if (_match.Success)
             {
-                if (_match.Success)
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                foreach (string group in _regex.GetGroupNames())
                 {
-                    System.Text.StringBuilder sb = new System.Text.StringBuilder();
-                    foreach (string group in _regex.GetGroupNames())
+                    if (group == "0")
                     {
-                        if (group == "0")
-                        {
-                            //'0' is the entire match, and not an explicitly defined named match
-                            continue;
-                        }
-                        //Each matched group should be added to the parameters required for parsing
-                        sb.Append(_match.Groups[group]).Append(" ");
-                        //And format data should be populated with the number of strings captured, for dynamically sizing format parameters
-                        FormatData[group] = _match.Groups[group].Value.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).Length;
+                        //'0' is the entire match, and not an explicitly defined named match, so we skip it
+                        continue;
                     }
-                    sb.Append(input.Remove(0, _match.Length));
-
-                    return sb.ToString();
+                    //Each matched group should be added to the parameters required for parsing
+                    sb.Append(_match.Groups[group]).Append(" ");
+                    //And format data should be populated with the number of strings captured, for dynamically sizing format parameters
+                    FormatData[group].Repetitions = _match.Groups[group].Value.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).Length;
                 }
+                sb.Append(input.Remove(0, _match.Length));
 
-                throw new InvalidOperationException($"Matching error - {nameof(RegexString)}.{nameof(Matches)} must succeed before removing the matched string.");
+                return sb.ToString();
             }
-            else
-            {
-                if (_matchStart)
-                {
-                    if (_matchEnd)
-                    {
-                        //If we matched start and end, the matched string is the entire string, so return empty
-                        return string.Empty;
-                    }
 
-                    //If we matched start, remove from the start
-                    return input.Remove(0, _string.Length);
-                }
-
-                //Remove from anywhere in the string
-                int index = _caseSensitive ? input.IndexOf(_string) : input.ToLowerInvariant().IndexOf(_string);
-                return input.Remove(index, _string.Length);
-            }
+            throw new InvalidOperationException($"Matching error - {nameof(RegexString)}.{nameof(Matches)} must succeed before removing the matched string.");
         }
 
         /// <summary>
