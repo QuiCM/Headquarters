@@ -11,7 +11,7 @@ namespace RnD
     public class BasicScannerTests
     {
         const string ScannerOutput = "Scanner pattern 123";
-        const string ScannerRegex = @"Scanner \w+ \d+";
+        const string ScannerRegex = @"Scanner (?<test>\w+) (?<test2>\d+)";
 
         [TestMethod]
         public void TestScanner()

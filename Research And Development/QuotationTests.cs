@@ -19,7 +19,7 @@ namespace RnD
         [CommandClass]
         public class TestCommand
         {
-            [CommandExecutor("Test command", "quote me", RegexStringOptions.MatchFromStart)]
+            [CommandExecutor("Test command", "quote me {message1} {message2}", RegexStringOptions.MatchFromStart)]
             public object Execute(IContextObject context, string message1, string message2)
             {
                 Console.WriteLine(message2);

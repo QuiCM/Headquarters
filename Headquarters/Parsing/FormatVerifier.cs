@@ -21,7 +21,7 @@ namespace HQ.Parsing
     * 
     * **COMMAND SUBCOMMAND RULE SET**
     * A method that is considered a sub-command runnable method for a command must be decorated with a SubcommandExecutorAttribute.
-    * The method must return type Task<Object>.
+    * The method must return type Task<Object> or Object.
     * The method must have at least 1 parameter.
     * The method's first parameter must be castable to type IContextObject.
     * 
@@ -100,6 +100,7 @@ namespace HQ.Parsing
         public void VerifyClassAttribute()
         {
             CommandClassAttribute attr = _type.GetTypeInfo().GetCustomAttribute<CommandClassAttribute>();
+            //If the command class is not tagged with a CommandClassAttribute, the command has been defined incorrectly
             if (attr == null)
             {
                 throw new CommandParsingException(
@@ -114,6 +115,7 @@ namespace HQ.Parsing
         /// <exception cref="CommandParsingException">Thrown if the executor does not follow command executor style rules</exception>
         public void DiscoverExecutors()
         {
+            //Selects all methods present on the type that are decorated with CommandExecutorAttributes
             _executors = (from methodInfo in _type.GetRuntimeMethods().Where(m => m.GetCustomAttribute<CommandExecutorAttribute>() != null
                           && !(m.GetCustomAttribute<CommandExecutorAttribute>() is SubcommandExecutorAttribute))
                           select new CommandExecutorData
@@ -123,6 +125,7 @@ namespace HQ.Parsing
                               AsyncExecution = methodInfo.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null
                           }).ToList();
 
+            //If the command class has no executors, the command has been defined incorrectly
             if (_executors.Count() == 0)
             {
                 throw new CommandParsingException(
@@ -141,6 +144,7 @@ namespace HQ.Parsing
             MethodInfo mInfo = data.ExecutingMethod;
             if (!data.AsyncExecution)
             {
+                //If the command is not asynchronous and does not return Object, the command is defined incorrectly
                 if (mInfo.ReturnType != typeof(object))
                 {
                     throw new CommandParsingException(
@@ -151,6 +155,7 @@ namespace HQ.Parsing
             }
             else
             {
+                //If the command is asynchronous and does not return Task<Object>, the command is defined incorrectly
                 if (mInfo.ReturnType != typeof(Task<object>))
                 {
                     throw new CommandParsingException(
@@ -163,14 +168,17 @@ namespace HQ.Parsing
             ParameterInfo[] parameters = mInfo.GetParameters();
             Exception inner = null;
 
+            //If the method has no parameters, the command is defined incorrectly
             if (parameters.Length < 1)
             {
                 inner = new Exception("Method defines no parameters, but requires at least one.");
             }
+            //If the first parameter of the method is not of a type inheriting from IContextObject, the command is defined incorrectly
             else if (!typeof(IContextObject).GetTypeInfo().IsAssignableFrom(parameters[0].ParameterType))
             {
                 inner = new InvalidCastException($"Parameter '{parameters[0].Name}' of type '{parameters[0].ParameterType.Name}' must be castable to type '{nameof(IContextObject)}'.");
             }
+            //If the command specifies a number of format parameters, but the method parameters are fewer, the command is defined incorrectly
             else if (parameters.Length <= data.ExecutorAttribute.CommandMatcher.FormatParameters.Count())
             {
                 inner = new Exception($"Method requires at least {data.ExecutorAttribute.CommandMatcher.FormatParameters.Count()}"
@@ -218,12 +226,15 @@ namespace HQ.Parsing
             Dictionary<ParameterInfo, CommandParameterAttribute> paramData = new Dictionary<ParameterInfo, CommandParameterAttribute>();
 
             List<string> formatParams = executor.ExecutorAttribute.CommandMatcher.FormatParameters;
+            //Index refers to the current index of the parameter being investigated.
+            //It is offset by 1 (index - 1) to retrieve the format parameter from formatParams that matches the parameter info
             int index = 1;
 
             foreach (ParameterInfo param in parameters)
             {
                 CommandParameterAttribute attr = param.GetCustomAttribute<CommandParameterAttribute>();
 
+                //All parameters should have attributes
                 if (attr == null)
                 {
                     attr = new CommandParameterAttribute(optional: param.IsOptional)
@@ -234,8 +245,7 @@ namespace HQ.Parsing
 
                 if (index < formatParams.Count + 1)
                 {
-                    //Format parameters should go ahead of normal parameters.
-                    //+ 1 and - 1 are used to account for the required IContextObject parameter
+                    //If the current format parameter doesn't match the current parameter, the command is defined incorrectly
                     if (param.Name != formatParams[index - 1])
                     {
                         throw new CommandParsingException(
@@ -244,41 +254,42 @@ namespace HQ.Parsing
                         );
                     }
 
-                    attr.IsFormatParameter = true;
                     index++;
-                }
 
-                if (optionalFound && !attr.Optional)
-                {
-                    throw new CommandParsingException(
-                        ParserFailReason.InvalidParameter,
-                        $"Parameter '{param.Name}' is required, but follows an optional parameter."
-                    );
-                }
+                    //If an optional parameter has been found previously, and this parameter is not optional, the command is defined incorrectly
+                    if (optionalFound && !attr.Optional)
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.InvalidParameter,
+                            $"Parameter '{param.Name}' is required, but follows an optional parameter."
+                        );
+                    }
 
-                if (unknownLengthFound)
-                {
-                    throw new CommandParsingException(
-                        ParserFailReason.InvalidParameter,
-                        $"Parameter '{param.Name}' follows an unknown-length parameter."
-                    );
-                }
+                    //If an unlengthed parameter has been found previously, the command is defined incorrectly
+                    if (unknownLengthFound)
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.InvalidParameter,
+                            $"Parameter '{param.Name}' follows an unknown-length parameter."
+                        );
+                    }
 
-                if (attr.Optional)
-                {
-                    optionalFound = true;
-                }
-                if (attr.Repetitions < 1)
-                {
-                    unknownLengthFound = true;
-                    requiredArgumentCount = -1;
-                }
-                if (!attr.Optional)
-                {
-                    requiredArgumentCount += attr.Repetitions;
-                }
+                    if (attr.Optional)
+                    {
+                        optionalFound = true;
+                    }
+                    if (attr.Repetitions < 1)
+                    {
+                        unknownLengthFound = true;
+                        requiredArgumentCount = -1;
+                    }
+                    if (!attr.Optional)
+                    {
+                        requiredArgumentCount += attr.Repetitions;
+                    }
 
-                paramData.Add(param, attr);
+                    paramData.Add(param, attr);
+                }
             }
 
             executor.ParameterData = paramData;

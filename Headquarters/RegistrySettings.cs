@@ -21,5 +21,9 @@ namespace HQ
         /// The type of parser that will be used when parsing input and executing commands
         /// </summary>
         public Type Parser { get; set; } = typeof(Parsing.Parser);
+        /// <summary>
+        /// The string or character used to define the pipe between two commands
+        /// </summary>
+        public string PipeCharacter = "|";
     }
 }
