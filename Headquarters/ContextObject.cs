@@ -6,7 +6,7 @@ namespace HQ
 {
     /// <inheritdoc/>
     /// <summary>
-    /// See <see cref="IContextObject"/>
+    /// The default implementation of <see cref="IContextObject"/>
     /// </summary>
     public class ContextObject : IContextObject
     {

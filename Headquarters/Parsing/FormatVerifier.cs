@@ -21,7 +21,7 @@ namespace HQ.Parsing
     * 
     * **COMMAND SUBCOMMAND RULE SET**
     * A method that is considered a sub-command runnable method for a command must be decorated with a SubcommandExecutorAttribute.
-    * The method must return type Task<Object>.
+    * The method must return type Task<Object> or Object.
     * The method must have at least 1 parameter.
     * The method's first parameter must be castable to type IContextObject.
     * 
@@ -100,6 +100,7 @@ namespace HQ.Parsing
         public void VerifyClassAttribute()
         {
             CommandClassAttribute attr = _type.GetTypeInfo().GetCustomAttribute<CommandClassAttribute>();
+            //If the command class is not tagged with a CommandClassAttribute, the command has been defined incorrectly
             if (attr == null)
             {
                 throw new CommandParsingException(
@@ -124,6 +125,7 @@ namespace HQ.Parsing
                               AsyncExecution = methodInfo.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null
                           }).ToList();
 
+            //If the command class has no executors, the command has been defined incorrectly
             if (_executors.Count() == 0)
             {
                 throw new CommandParsingException(
@@ -142,6 +144,7 @@ namespace HQ.Parsing
             MethodInfo mInfo = data.ExecutingMethod;
             if (!data.AsyncExecution)
             {
+                //If the command is not asynchronous and does not return Object, the command is defined incorrectly
                 if (mInfo.ReturnType != typeof(object))
                 {
                     throw new CommandParsingException(
@@ -152,6 +155,7 @@ namespace HQ.Parsing
             }
             else
             {
+                //If the command is asynchronous and does not return Task<Object>, the command is defined incorrectly
                 if (mInfo.ReturnType != typeof(Task<object>))
                 {
                     throw new CommandParsingException(
@@ -164,14 +168,17 @@ namespace HQ.Parsing
             ParameterInfo[] parameters = mInfo.GetParameters();
             Exception inner = null;
 
+            //If the method has no parameters, the command is defined incorrectly
             if (parameters.Length < 1)
             {
                 inner = new Exception("Method defines no parameters, but requires at least one.");
             }
+            //If the first parameter of the method is not of a type inheriting from IContextObject, the command is defined incorrectly
             else if (!typeof(IContextObject).GetTypeInfo().IsAssignableFrom(parameters[0].ParameterType))
             {
                 inner = new InvalidCastException($"Parameter '{parameters[0].Name}' of type '{parameters[0].ParameterType.Name}' must be castable to type '{nameof(IContextObject)}'.");
             }
+            //If the command specifies a number of format parameters, but the method parameters are fewer, the command is defined incorrectly
             else if (parameters.Length <= data.ExecutorAttribute.CommandMatcher.FormatParameters.Count())
             {
                 inner = new Exception($"Method requires at least {data.ExecutorAttribute.CommandMatcher.FormatParameters.Count()}"
@@ -227,6 +234,7 @@ namespace HQ.Parsing
             {
                 CommandParameterAttribute attr = param.GetCustomAttribute<CommandParameterAttribute>();
 
+                //All parameters should have attributes
                 if (attr == null)
                 {
                     attr = new CommandParameterAttribute(optional: param.IsOptional)
@@ -237,7 +245,7 @@ namespace HQ.Parsing
 
                 if (index < formatParams.Count + 1)
                 {
-                    
+                    //If the current format parameter doesn't match the current parameter, the command is defined incorrectly
                     if (param.Name != formatParams[index - 1])
                     {
                         throw new CommandParsingException(
@@ -248,6 +256,7 @@ namespace HQ.Parsing
 
                     index++;
 
+                    //If an optional parameter has been found previously, and this parameter is not optional, the command is defined incorrectly
                     if (optionalFound && !attr.Optional)
                     {
                         throw new CommandParsingException(
@@ -256,6 +265,7 @@ namespace HQ.Parsing
                         );
                     }
 
+                    //If an unlengthed parameter has been found previously, the command is defined incorrectly
                     if (unknownLengthFound)
                     {
                         throw new CommandParsingException(

@@ -10,6 +10,9 @@ namespace HQ
     /// </summary>
     public class RegexString
     {
+        /// <summary>
+        /// Used to identify a format parameter ("{parameter}") and transform it into a usable regex
+        /// </summary>
         private static readonly Regex FormatRegex = new Regex(@"{(?<format>[\w]+\??)}");
 
         private Regex _regex;
@@ -66,6 +69,7 @@ namespace HQ
                 FormatData.Add(arg, new CommandParameterAttribute(repetitions: 0, optional: optional));
 
                 //("[^"]*"|[^"]+) => matches "First word" more words "third and more words" in 3 groups
+                //This is important to the parsing mechanism which chunks quoted arguments together
                 return $"(?<{arg}>\"[^\"]*\"|[^\"]+){(optional ? "?" : "")}";
             });
 
@@ -111,12 +115,14 @@ namespace HQ
                     //And format data should be populated with the number of strings captured, for dynamically sizing format parameters
                     if (value.StartsWith("\""))
                     {
-                        //The regex splits quoted messages separately. I.e., "word \"word 2\" word3" -> "word", "word 2", "word3".
-                        //Quoted messages should only count for 1 repetition.
+                        //The regex splits quoted messages separately. I.E., "word \"word 2\" word3" -> "word", "word 2", "word3".
+                        //Quoted messages should only count for 1 repetition as \"word 2\" is considered as one argument.
                         FormatData[group].Repetitions = 1;
                     }
                     else
                     {
+                        //Normal arguments, E.G the phrase "the cat jumped over a tree", should be split on each argument: "the", "cat", "jumped", "over", "a", "tree"
+                        //Each of these is used as a repetition for the parameter.
                         FormatData[group].Repetitions = value.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).Length;
                     }
                 }
