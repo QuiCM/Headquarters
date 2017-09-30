@@ -9,7 +9,7 @@ namespace RnD
     public class LightweightParserTests
     {
         [TestMethod]
-        public void TestParserSucceeds()
+        public void LightweightParserTestSucceeds()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             {

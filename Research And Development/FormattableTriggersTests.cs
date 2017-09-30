@@ -57,7 +57,7 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndUsage()
+        public void FormattableTriggersTestEndToEnd()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))
@@ -74,7 +74,7 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndSeriesUsage()
+        public void FormattableTriggersTestEndToEndSeries()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))

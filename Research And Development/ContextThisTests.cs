@@ -50,7 +50,7 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndStringUsage()
+        public void ContextThisTestEndToEndString()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))
@@ -70,7 +70,7 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndTypeUsage()
+        public void ContextThisTestEndToEndType()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))

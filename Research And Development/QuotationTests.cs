@@ -28,7 +28,7 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestQuotationParsing()
+        public void QuotationParsingTest()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))

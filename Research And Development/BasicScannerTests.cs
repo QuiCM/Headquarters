@@ -14,7 +14,7 @@ namespace RnD
         const string ScannerRegex = @"Scanner (?<test>\w+) (?<test2>\d+)";
 
         [TestMethod]
-        public void TestScanner()
+        public void BasicScannerTestScanner()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))
@@ -43,7 +43,7 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestAsyncScanner()
+        public void BasicScannerTestAsyncScanner()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))
