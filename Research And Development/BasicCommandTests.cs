@@ -44,12 +44,10 @@ namespace RnD
         public void TestExecution()
         {
             //Asserts that a command can be run and returns the expected result
-
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
                 registry.AddCommand(typeof(TestCommand));
-
-                ManualResetEvent mre = new ManualResetEvent(false);
 
                 object testOutput = null;
                 registry.HandleInput("unit-test", null, (result, output) => { testOutput = output; mre.Set(); });

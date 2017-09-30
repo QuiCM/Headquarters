@@ -17,9 +17,8 @@ namespace RnD
         public void TestScanner()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
-                ManualResetEvent mre = new ManualResetEvent(false);
-
                 object output = null;
                 registry.AddScanner(ScannerRegex, (IContextObject ctx, string match, LightweightParser parser) =>
                 {
@@ -47,9 +46,8 @@ namespace RnD
         public void TestAsyncScanner()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
-                ManualResetEvent mre = new ManualResetEvent(false);
-
                 object output = null;
                 registry.AddAsyncScanner(ScannerRegex, async (IContextObject ctx, string match, LightweightParser parser) =>
                 {

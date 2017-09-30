@@ -11,20 +11,23 @@ namespace RnD
         [TestMethod]
         public void TestParserSucceeds()
         {
-            LightweightParser lwParser = new LightweightParser(new ContextObject(new CommandRegistry(new RegistrySettings())))
+            using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            {
+                LightweightParser lwParser = new LightweightParser(new ContextObject(registry))
                 .AddType(typeof(int))
                 .AddType(typeof(float))
                 .AddType((typeof(string), new CommandParameterAttribute(repetitions: -1, optional: true)))
                 .Parse("1 2.0 test test test");
 
-            Assert.AreEqual(lwParser.Get<int>(), 1);
-            Assert.AreEqual(lwParser.Get<float>(), 2.0f);
-            Assert.AreEqual(lwParser.Get<string>(), "test test test");
+                Assert.AreEqual(lwParser.Get<int>(), 1);
+                Assert.AreEqual(lwParser.Get<float>(), 2.0f);
+                Assert.AreEqual(lwParser.Get<string>(), "test test test");
 
-            lwParser.Parse("1 2.0");
-            Assert.AreEqual(lwParser.Get<int>(), 1);
-            Assert.AreEqual(lwParser.Get<float>(), 2.0f);
-            Assert.IsNull(lwParser.Get<string>());
+                lwParser.Parse("1 2.0");
+                Assert.AreEqual(lwParser.Get<int>(), 1);
+                Assert.AreEqual(lwParser.Get<float>(), 2.0f);
+                Assert.IsNull(lwParser.Get<string>());
+            }
         }
     }
 }
