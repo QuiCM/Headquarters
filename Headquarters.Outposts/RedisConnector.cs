@@ -34,8 +34,8 @@ namespace Headquarters.Outposts
         /// <returns></returns>
         public async Task PublishAsync(IChannel channel, IPublication publication)
         {
-            RedisChannel redisChannel = channel.ToRedisChannel();
-            RedisValue message = publication.ToRedisValue();
+            RedisChannel redisChannel = (RChannel)channel;
+            RedisValue message = (RPublication)publication;
 
             StackExchange.Redis.ISubscriber subscriber = _redis.GetSubscriber();
             await subscriber.PublishAsync(redisChannel, message);
@@ -49,7 +49,7 @@ namespace Headquarters.Outposts
         /// <returns></returns>
         public async Task SubscribeAsync(IChannel channel, Action<IChannel, IPublication> callback)
         {
-            RedisChannel redisChannel = channel.ToRedisChannel();
+            RedisChannel redisChannel = (RChannel)channel;
 
             if (_channelMap.ContainsKey(redisChannel))
             {
@@ -68,7 +68,7 @@ namespace Headquarters.Outposts
         {
             if (_channelMap.ContainsKey(channel))
             {
-                _channelMap[channel](channel.ToChannel(), message.ToPublication());
+                _channelMap[channel]((RChannel)channel, (RPublication)message);
             }
         }
 

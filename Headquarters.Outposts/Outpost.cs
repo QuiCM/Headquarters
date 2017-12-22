@@ -1,9 +1,7 @@
 ﻿using Headquarters.Communications;
-using StackExchange.Redis;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Text;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Headquarters.Outposts
@@ -14,10 +12,15 @@ namespace Headquarters.Outposts
     public sealed class Outpost : IDisposable
     {
         private IPSProvider _pubSubProvider;
+        private CommandReceiver _cmdReceiver;
         private Configuration _config;
         private string _connectionString;
 
-        internal Outpost(string connectionString) => _connectionString = connectionString;
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="connectionString"></param>
+        public Outpost(string connectionString) => _connectionString = connectionString;
 
         internal void ReadConfig(string path)
         {
@@ -36,7 +39,20 @@ namespace Headquarters.Outposts
                 _config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             }
 
-            _connectionString = _config.ConnectionStrings.ConnectionStrings["Redis"].ConnectionString;
+            _connectionString = _config.ConnectionStrings.ConnectionStrings["PubSubProvider"].ConnectionString;
+        }
+
+        internal void SetProvider(string provider)
+        {
+            if (File.Exists(provider))
+            {
+                //Load provider from external path
+            }
+            else
+            {
+                //Load provider from working directory
+                string directory = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
+            }
         }
 
         /// <summary>
@@ -48,8 +64,19 @@ namespace Headquarters.Outposts
         {
             Console.WriteLine("Awaiting connection to Redis server...");
 
+            _pubSubProvider = new RedisConnector();
             await _pubSubProvider.ConnectAsync(_connectionString)
-                .ContinueWith((t) => Console.WriteLine("Connection established."));
+                .ContinueWith((t) => Console.WriteLine("Connection established."))
+                .ContinueWith((t) => Console.Write("Subscribing to queues..."))
+                .ContinueWith(async (t) =>
+                {
+                    //Subscribe to a queue for each loaded command
+                    await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
+                    await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
+                    await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
+                    await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
+                })
+                .ContinueWith((t) => Console.WriteLine("\tComplete."));
         }
 
         #region IDisposable Support
