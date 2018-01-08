@@ -7,46 +7,46 @@ namespace Headquarters.Outposts
     /// <summary>
     /// Implements an <see cref="IPublication"/> for Redis by wrapping <see cref="RedisValue"/>
     /// </summary>
-    public struct RPublication : IPublication, IEquatable<RPublication>, IComparable<RPublication>, IComparable, IConvertible
+    public struct RedisPublication : IPublication, IEquatable<RedisPublication>, IComparable<RedisPublication>, IComparable, IConvertible
     {
         private RedisValue _value;
 
-        public static implicit operator RPublication(int? value)
+        public static implicit operator RedisPublication(int? value)
         {
-            return new RPublication { _value = value };
+            return new RedisPublication { _value = value };
         }
 
-        public static implicit operator RPublication(long? value)
+        public static implicit operator RedisPublication(long? value)
         {
-            return new RPublication { _value = value };
+            return new RedisPublication { _value = value };
         }
 
-        public static implicit operator RPublication(double value)
+        public static implicit operator RedisPublication(double value)
         {
-            return new RPublication { _value = value };
+            return new RedisPublication { _value = value };
         }
 
-        public static implicit operator RPublication(string value)
+        public static implicit operator RedisPublication(string value)
         {
-            return new RPublication { _value = value };
+            return new RedisPublication { _value = value };
         }
 
-        public static implicit operator RPublication(byte[] value)
+        public static implicit operator RedisPublication(byte[] value)
         {
-            return new RPublication { _value = value };
+            return new RedisPublication { _value = value };
         }
 
-        public static implicit operator RPublication(bool? value)
+        public static implicit operator RedisPublication(bool? value)
         {
-            return new RPublication { _value = value };
+            return new RedisPublication { _value = value };
         }
 
-        public static implicit operator RPublication(RedisValue value)
+        public static implicit operator RedisPublication(RedisValue value)
         {
-            return new RPublication { _value = value };
+            return new RedisPublication { _value = value };
         }
 
-        public static implicit operator RedisValue(RPublication value)
+        public static implicit operator RedisValue(RedisPublication value)
         {
             return value._value;
         }
@@ -56,12 +56,12 @@ namespace Headquarters.Outposts
             return ((IComparable)_value).CompareTo(obj);
         }
 
-        public int CompareTo(RPublication other)
+        public int CompareTo(RedisPublication other)
         {
             return _value.CompareTo(other._value);
         }
 
-        public bool Equals(RPublication other)
+        public bool Equals(RedisPublication other)
         {
             return other._value == _value;
         }
@@ -161,32 +161,32 @@ namespace Headquarters.Outposts
             return _value.GetHashCode();
         }
 
-        public static bool operator ==(RPublication left, RPublication right)
+        public static bool operator ==(RedisPublication left, RedisPublication right)
         {
             return left._value == right._value;
         }
 
-        public static bool operator !=(RPublication left, RPublication right)
+        public static bool operator !=(RedisPublication left, RedisPublication right)
         {
             return !(left == right);
         }
 
-        public static bool operator <(RPublication left, RPublication right)
+        public static bool operator <(RedisPublication left, RedisPublication right)
         {
             return left.CompareTo(right) < 0;
         }
 
-        public static bool operator <=(RPublication left, RPublication right)
+        public static bool operator <=(RedisPublication left, RedisPublication right)
         {
             return left.CompareTo(right) <= 0;
         }
 
-        public static bool operator >(RPublication left, RPublication right)
+        public static bool operator >(RedisPublication left, RedisPublication right)
         {
             return left.CompareTo(right) > 0;
         }
 
-        public static bool operator >=(RPublication left, RPublication right)
+        public static bool operator >=(RedisPublication left, RedisPublication right)
         {
             return left.CompareTo(right) >= 0;
         }
