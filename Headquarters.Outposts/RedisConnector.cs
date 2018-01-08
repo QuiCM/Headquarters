@@ -2,28 +2,31 @@
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Headquarters.Outposts
 {
     /// <summary>
-    /// Implements <see cref="IPSProvider"/> to provide pub/sub through Redis
+    /// Implements <see cref="PubSubProviderBase"/> to provide pub/sub through Redis
     /// </summary>
-    public class RedisConnector : IPSProvider
+    public class RedisConnector : PubSubProviderBase
     {
         private ConnectionMultiplexer _redis;
-        private Dictionary<RedisChannel, Action<IChannel, IPublication>> _channelMap;
+        private Dictionary<StackExchange.Redis.RedisChannel, Action<ChannelBase, IPublication>> _channelMap;
+
+        public override Type ChannelType => typeof(RedisChannel);
+
+        public RedisConnector(Brain brain) : base(brain) { }
 
         /// <summary>
         /// Asynchronously connects to the Redis server described in the given connection string
         /// </summary>
         /// <param name="connectionString">Connection string following the requirements of https://stackexchange.github.io</param>
         /// <returns></returns>
-        public async Task ConnectAsync(string connectionString)
+        public override async Task ConnectAsync(string connectionString)
         {
             _redis = await ConnectionMultiplexer.ConnectAsync(connectionString);
-            _channelMap = new Dictionary<RedisChannel, Action<IChannel, IPublication>>();
+            _channelMap = new Dictionary<StackExchange.Redis.RedisChannel, Action<ChannelBase, IPublication>>();
         }
 
         /// <summary>
@@ -32,10 +35,10 @@ namespace Headquarters.Outposts
         /// <param name="channel"></param>
         /// <param name="publication"></param>
         /// <returns></returns>
-        public async Task PublishAsync(IChannel channel, IPublication publication)
+        public override async Task PublishAsync(ChannelBase channel, IPublication publication)
         {
-            RedisChannel redisChannel = (RChannel)channel;
-            RedisValue message = (RPublication)publication;
+            StackExchange.Redis.RedisChannel redisChannel = (RedisChannel)channel;
+            RedisValue message = (RedisPublication)publication;
 
             StackExchange.Redis.ISubscriber subscriber = _redis.GetSubscriber();
             await subscriber.PublishAsync(redisChannel, message);
@@ -47,9 +50,9 @@ namespace Headquarters.Outposts
         /// <param name="channel"></param>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public async Task SubscribeAsync(IChannel channel, Action<IChannel, IPublication> callback)
+        public override async Task SubscribeAsync(ChannelBase channel, Action<ChannelBase, IPublication> callback)
         {
-            RedisChannel redisChannel = (RChannel)channel;
+            StackExchange.Redis.RedisChannel redisChannel = (RedisChannel)channel;
 
             if (_channelMap.ContainsKey(redisChannel))
             {
@@ -64,18 +67,18 @@ namespace Headquarters.Outposts
             await subscriber.SubscribeAsync(redisChannel, PublishCallback);
         }
 
-        private void PublishCallback(RedisChannel channel, RedisValue message)
+        private void PublishCallback(StackExchange.Redis.RedisChannel channel, RedisValue message)
         {
             if (_channelMap.ContainsKey(channel))
             {
-                _channelMap[channel]((RChannel)channel, (RPublication)message);
+                _channelMap[channel]((RedisChannel)channel, (RedisPublication)message);
             }
         }
 
         /// <summary>
         /// Disposes the Redis connection
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
             _redis.Dispose();
         }

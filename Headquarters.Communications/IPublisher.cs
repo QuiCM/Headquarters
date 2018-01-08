@@ -16,6 +16,6 @@ namespace Headquarters.Communications
         /// <param name="channel"></param>
         /// <param name="publication"></param>
         /// <returns></returns>
-        Task PublishAsync(IChannel channel, IPublication publication);
+        Task PublishAsync(ChannelBase channel, IPublication publication);
     }
 }

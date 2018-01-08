@@ -8,9 +8,9 @@ namespace Headquarters.Outposts
     public sealed class CommandReceiver
     {
 
-        public void OnReceive(IChannel channel, IPublication publication)
+        public void OnReceive(ChannelBase channel, IPublication publication)
         {
-
+            //Command = Commands.First(c => c.Name == channel)
         }
     }
 }

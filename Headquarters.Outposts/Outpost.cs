@@ -2,6 +2,8 @@
 using System;
 using System.Configuration;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Headquarters.Outposts
@@ -11,10 +13,12 @@ namespace Headquarters.Outposts
     /// </summary>
     public sealed class Outpost : IDisposable
     {
-        private IPSProvider _pubSubProvider;
+        private PubSubProviderBase _pubSubProvider;
         private CommandReceiver _cmdReceiver;
         private Configuration _config;
         private string _connectionString;
+        private Brain _brain;
+        private bool _loadedCustomProvider = false;
 
         /// <summary>
         /// 
@@ -47,11 +51,18 @@ namespace Headquarters.Outposts
             if (File.Exists(provider))
             {
                 //Load provider from external path
+                Assembly asm = Assembly.LoadFrom(provider);
+                _pubSubProvider = (PubSubProviderBase)Activator.CreateInstance(
+                    asm.GetExportedTypes().First(t => t.GetInterfaces().Contains(typeof(PubSubProviderBase))),
+                    new object[] { new Brain() }
+                );
+
+                _loadedCustomProvider = true;
             }
             else
             {
-                //Load provider from working directory
-                string directory = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
+                Console.WriteLine("Invalid provider file specified.");
+                Environment.Exit(4041);
             }
         }
 
@@ -63,17 +74,20 @@ namespace Headquarters.Outposts
         public async Task ConnectAsync()
         {
             Console.WriteLine("Awaiting connection to Redis server...");
+            
+            if (!_loadedCustomProvider)
+            {
+                _pubSubProvider = new RedisConnector(new Brain());
+            }
 
-            _pubSubProvider = new RedisConnector();
             await _pubSubProvider.ConnectAsync(_connectionString)
                 .ContinueWith((t) => Console.WriteLine("Connection established."))
                 .ContinueWith((t) => Console.Write("Subscribing to queues..."))
                 .ContinueWith(async (t) =>
                 {
+                    //Subscribe to a queue for context forwarding
+                    await _pubSubProvider.SubscribeAsync(ChannelFactory.CreateFromString(Brain.BrainChannel, _pubSubProvider.ChannelType), _pubSubProvider.Brain.OnContextUpdateReceived);
                     //Subscribe to a queue for each loaded command
-                    await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
-                    await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
-                    await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
                     await _pubSubProvider.SubscribeAsync(null, _cmdReceiver.OnReceive);
                 })
                 .ContinueWith((t) => Console.WriteLine("\tComplete."));
