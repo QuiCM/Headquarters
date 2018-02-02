@@ -6,12 +6,12 @@ namespace Headquarters.Communications
     /// <summary>
     /// Describes a Pub/Sub service provider. Used to pump stateful changes between Headquarters and Outposts
     /// </summary>
-    public abstract class PubSubProviderBase : IPublisher, ISubscriber, IDisposable
+    public abstract class PubSubProvider : IPublisher, ISubscriber, IDisposable
     {
         public abstract Type ChannelType { get; }
         public Brain Brain { get; }
 
-        public PubSubProviderBase(Brain brain)
+        protected PubSubProvider(Brain brain)
         {
             Brain = brain;
         }

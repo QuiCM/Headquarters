@@ -5,7 +5,7 @@ namespace Headquarters.Communications
 {
     public class Brain : ContextObject
     {
-        public const string BrainChannel = "Nervous_System";
+        public const string BrainChannel = "__NervousSystem";
 
         public event EventHandler<ContextUpdateEventArgs> OnContextUpdate;
 

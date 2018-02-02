@@ -4,7 +4,7 @@ namespace Headquarters.Communications
 {
     public static class ChannelFactory
     {
-        public static ChannelBase CreateFromString<T>(string channel, T type) where T : Type
+        public static ChannelBase CreateFromString(string channel, Type type)
         {
             if (type.IsAbstract)
             {
