@@ -13,7 +13,7 @@ namespace Headquarters.Outposts
     /// </summary>
     public sealed class Outpost : IDisposable
     {
-        private PubSubProviderBase _pubSubProvider;
+        private PubSubProvider _pubSubProvider;
         private CommandReceiver _cmdReceiver;
         private Configuration _config;
         private string _connectionString;
@@ -52,8 +52,8 @@ namespace Headquarters.Outposts
             {
                 //Load provider from external path
                 Assembly asm = Assembly.LoadFrom(provider);
-                _pubSubProvider = (PubSubProviderBase)Activator.CreateInstance(
-                    asm.GetExportedTypes().First(t => t.GetInterfaces().Contains(typeof(PubSubProviderBase))),
+                _pubSubProvider = (PubSubProvider)Activator.CreateInstance(
+                    asm.GetExportedTypes().First(t => t.GetInterfaces().Contains(typeof(PubSubProvider))),
                     new object[] { new Brain() }
                 );
 
@@ -78,7 +78,7 @@ namespace Headquarters.Outposts
             if (!_loadedCustomProvider)
             {
                 _pubSubProvider = new RedisConnector(new Brain());
-            }
+            }   
 
             await _pubSubProvider.ConnectAsync(_connectionString)
                 .ContinueWith((t) => Console.WriteLine("Connection established."))
