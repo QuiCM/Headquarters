@@ -13,6 +13,6 @@ namespace Headquarters.Communications
         /// </summary>
         /// <param name="channel"></param>
         /// <param name="callback"></param>
-        Task SubscribeAsync(ChannelBase channel, Action<ChannelBase, IPublication> callback);
+        Task SubscribeAsync(ChannelBase channel, Func<ChannelBase, IPublication, Task> callback);
     }
 }

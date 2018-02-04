@@ -25,7 +25,7 @@ namespace Headquarters.Communications
 
         public abstract Task PublishAsync(ChannelBase channel, IPublication publication);
 
-        public abstract Task SubscribeAsync(ChannelBase channel, Action<ChannelBase, IPublication> callback);
+        public abstract Task SubscribeAsync(ChannelBase channel, Func<ChannelBase, IPublication, Task> callback);
 
         public abstract void Dispose();
     }

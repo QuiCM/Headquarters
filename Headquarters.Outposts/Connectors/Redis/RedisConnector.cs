@@ -12,7 +12,7 @@ namespace Headquarters.Outposts
     public class RedisConnector : PubSubProvider
     {
         private ConnectionMultiplexer _redis;
-        private Dictionary<StackExchange.Redis.RedisChannel, Action<ChannelBase, IPublication>> _channelMap;
+        private Dictionary<StackExchange.Redis.RedisChannel, Func<ChannelBase, IPublication, Task>> _channelMap;
 
         public override Type ChannelType => typeof(RedisChannel);
 
@@ -26,7 +26,7 @@ namespace Headquarters.Outposts
         public override async Task ConnectAsync(string connectionString)
         {
             _redis = await ConnectionMultiplexer.ConnectAsync(connectionString);
-            _channelMap = new Dictionary<StackExchange.Redis.RedisChannel, Action<ChannelBase, IPublication>>();
+            _channelMap = new Dictionary<StackExchange.Redis.RedisChannel, Func<ChannelBase, IPublication, Task>>();
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Headquarters.Outposts
         /// <param name="channel"></param>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public override async Task SubscribeAsync(ChannelBase channel, Action<ChannelBase, IPublication> callback)
+        public override async Task SubscribeAsync(ChannelBase channel, Func<ChannelBase, IPublication, Task> callback)
         {
             StackExchange.Redis.RedisChannel redisChannel = (RedisChannel)channel;
 
@@ -71,7 +71,7 @@ namespace Headquarters.Outposts
         {
             if (_channelMap.ContainsKey(channel))
             {
-                _channelMap[channel]((RedisChannel)channel, (RedisPublication)message);
+                _channelMap[channel]((Headquarters.Outposts.RedisChannel)channel, (Headquarters.Outposts.RedisPublication)message).Wait();
             }
         }
 

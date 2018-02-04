@@ -7,20 +7,39 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+//Consider a master-slave system? One 'brain' provider, spins up processes with other outposts on its own
+//HQ->Master via redis/whatever connector, master->slaves via named pipes
+
 namespace Headquarters.Outposts.Connectors.Pipes
 {
+    /// <summary>
+    /// Implements <see cref="PubSubProvider"/> to provide Pub/Sub communication over named pipes
+    /// </summary>
     public class PipeConnector : PubSubProvider
     {
         private Dictionary<ChannelBase, NamedPipeServerStream> _pipeServers;
         private CancellationTokenSource _cancellation;
 
+        /// <summary>
+        /// Constructors a new <see cref="PubSubProvider"/> with the given <see cref="Brain"/>
+        /// </summary>
+        /// <param name="brain"></param>
         public PipeConnector(Brain brain) : base(brain)
         {
             _pipeServers = new Dictionary<ChannelBase, NamedPipeServerStream>();
         }
 
+        /// <summary>
+        /// Provides the channel type that this <see cref="PubSubProvider"/> uses
+        /// </summary>
         public override Type ChannelType => typeof(PipeChannel);
 
+        /// <summary>
+        /// Asynchronously establishes a <see cref="NamedPipeServerStream"/> and waits for connections.
+        /// 
+        /// </summary>
+        /// <param name="connectionString"></param>
+        /// <returns></returns>
         public override async Task ConnectAsync(string connectionString)
         {
             NamedPipeServerStream pubSubServer =
@@ -51,7 +70,7 @@ namespace Headquarters.Outposts.Connectors.Pipes
             }
         }
 
-        public override async Task SubscribeAsync(ChannelBase channel, Action<ChannelBase, IPublication> callback)
+        public override async Task SubscribeAsync(ChannelBase channel, Func<ChannelBase, IPublication, Task> callback)
         {
             NamedPipeServerStream sub =
                 new NamedPipeServerStream(channel.ToString(),
@@ -61,9 +80,9 @@ namespace Headquarters.Outposts.Connectors.Pipes
             await sub.WaitForConnectionAsync(_cancellation.Token);
 
             //Extract this from method body
-            new Thread(() => ThreadLoop(sub, callback)).Start();
+            new Thread(async () => await ThreadLoop(sub, channel, callback)).Start();
 
-            async void ThreadLoop(NamedPipeServerStream pipe, Action<ChannelBase, IPublication> msgCallback)
+            async Task ThreadLoop(NamedPipeServerStream pipe, ChannelBase chan, Func<ChannelBase, IPublication, Task> msgCallback)
             {
                 //Use a queue to maintain message order
                 Queue<ArraySegment<byte>> bytes = new Queue<ArraySegment<byte>>();
@@ -76,8 +95,10 @@ namespace Headquarters.Outposts.Connectors.Pipes
                     if (pipe.IsMessageComplete)
                     {
                         //... invoke an event or somesuch for the message here
-                        Console.WriteLine(Encoding.UTF8.GetString(bytes.SelectMany(seg => seg.Array).ToArray()));
+                        IPublication pub = (PipePublication)Encoding.UTF8.GetString(bytes.SelectMany(seg => seg.Array).ToArray());
                         bytes.Clear();
+
+                        await msgCallback(chan, pub);
                     }
                 }
             }
