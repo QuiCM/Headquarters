@@ -157,7 +157,7 @@ namespace HQ
         }
 
         /// <summary>
-        /// Stores a context with a given key. Passing this key to <see cref="HandleInput(string, int, InputResultDelegate)"/>
+        /// Stores a context with a given key. Passing this key to <see cref="HandleInput(string, object, InputResultDelegate)"/>
         /// will cause the input to be handled with the given context
         /// </summary>
         /// <param name="key"></param>
