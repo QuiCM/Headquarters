@@ -57,13 +57,12 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndUsage()
+        public void FormattableTriggersTestEndToEnd()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
                 registry.AddCommand(typeof(TestCommand));
-
-                ManualResetEvent mre = new ManualResetEvent(false);
 
                 object testOutput = null;
                 registry.HandleInput($"unit-test {Output1} more words {Output2} {Number}", null, (result, output) => { testOutput = output; mre.Set(); });
@@ -75,13 +74,12 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndSeriesUsage()
+        public void FormattableTriggersTestEndToEndSeries()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
                 registry.AddCommand(typeof(TestCommand));
-
-                ManualResetEvent mre = new ManualResetEvent(false);
 
                 object testOutput = null;
                 registry.HandleInput($@"unit-test {Output1} {Output2} {Number}", null, (result, output) => { testOutput = output; mre.Set(); });

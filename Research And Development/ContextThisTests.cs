@@ -50,13 +50,12 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndStringUsage()
+        public void ContextThisTestEndToEndString()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
                 registry.AddCommand(typeof(TestCommand));
-
-                ManualResetEvent mre = new ManualResetEvent(false);
 
                 ContextObject context = new ContextObject(registry);
                 context[ThisName] = Output;
@@ -71,13 +70,12 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestEndToEndTypeUsage()
+        public void ContextThisTestEndToEndType()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
                 registry.AddCommand(typeof(TestCommand));
-
-                ManualResetEvent mre = new ManualResetEvent(false);
 
                 ContextObject context = new ContextObject(registry);
                 context[ThisType] = Output;
