@@ -24,8 +24,12 @@ namespace HQ
         private RegistrySettings _settings;
         private CommandQueue _queue;
         private ConcurrentDictionary<Type, IObjectConverter> _converters;
+        private ConcurrentDictionary<object, IContextObject> _contexts;
         private Type _parser = typeof(Parser);
 
+        /// <summary>
+        /// Provides the settings used to create this registry
+        /// </summary>
         public RegistrySettings Settings => _settings;
 
         /// <summary>
@@ -130,6 +134,7 @@ namespace HQ
             _settings = settings;
 
             _converters = new ConcurrentDictionary<Type, IObjectConverter>();
+            _contexts = new ConcurrentDictionary<object, IContextObject>();
             if (settings.EnableDefaultConverters)
             {
                 _converters.TryAdd(typeof(int[]), new IntArrayObjectConverter());
@@ -152,6 +157,34 @@ namespace HQ
         }
 
         /// <summary>
+        /// Stores a context with a given key. Passing this key to <see cref="HandleInput(string, int, InputResultDelegate)"/>
+        /// will cause the input to be handled with the given context
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="context"></param>
+        public void StoreContext(object key, IContextObject context)
+        {
+            //Attempts to store multiple contexts in the same key will overwrite
+            _contexts.AddOrUpdate(key, context, (k, c) => { return context; });
+        }
+
+        /// <summary>
+        /// Retrieves a context object stored with the given key
+        /// </summary>
+        /// <typeparam name="TContext"></typeparam>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public TContext RetrieveContext<TContext>(object key) where TContext : IContextObject
+        {
+            if (!_contexts.TryGetValue(key, out IContextObject ctx))
+            {
+                throw new ArgumentException($"No key found with value '{key}'", nameof(key));
+            }
+
+            return (TContext)ctx;
+        }
+
+        /// <summary>
         /// Queues an input for handling
         /// </summary>
         /// <param name="input">The string from which command data will be parsed</param>
@@ -161,6 +194,24 @@ namespace HQ
         public void HandleInput(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
+
+            _queue.QueueInputHandling(input, ctx, callback);
+        }
+
+        /// <summary>
+        /// Queues an input for handling
+        /// </summary>
+        /// <param name="input">The string from which command data will be parsed</param>
+        /// <param name="key">A key used to lookup a context object</param>
+        /// <param name="callback">A callback method for when the command completes</param>
+        public void HandleInput(string input, object key, InputResultDelegate callback)
+        {
+            ThrowIfDisposed();
+
+            if (!_contexts.TryGetValue(key, out IContextObject ctx))
+            {
+                throw new ArgumentException($"No key found with value '{key}'", nameof(key));
+            }
 
             _queue.QueueInputHandling(input, ctx, callback);
         }
