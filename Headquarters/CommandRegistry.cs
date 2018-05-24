@@ -4,6 +4,7 @@ using HQ.Parsing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using HQ.Collections;
 
 namespace HQ
 {
@@ -21,21 +22,20 @@ namespace HQ
     /// </summary>
     public class CommandRegistry : IDisposable
     {
-        private RegistrySettings _settings;
         private CommandQueue _queue;
-        private ConcurrentDictionary<Type, IObjectConverter> _converters;
-        private ConcurrentDictionary<object, IContextObject> _contexts;
+        private DefaultKeyedCollection<Type, IObjectConverter> _converters;
+        private DefaultKeyedCollection<object, IContextObject> _contexts;
         private Type _parser = typeof(Parser);
 
         /// <summary>
         /// Provides the settings used to create this registry
         /// </summary>
-        public RegistrySettings Settings => _settings;
+        public RegistrySettings Settings { get; }
 
         /// <summary>
         /// A concurrent dictionary with Types as keys, and IObjectConverters to convert those Types as values
         /// </summary>
-        public ConcurrentDictionary<Type, IObjectConverter> Converters
+        public IKeyedCollection<Type, IObjectConverter> Converters
         {
             get
             {
@@ -63,7 +63,7 @@ namespace HQ
         {
             ThrowIfDisposed();
 
-            _converters.AddOrUpdate(type, converter, (n, existing) => converter);
+            _converters.Store(type, converter);
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace HQ
         {
             ThrowIfDisposed();
 
-            if (_converters.TryGetValue(type, out IObjectConverter converter))
+            if (_converters.TryRetrieve(type, out IObjectConverter converter))
             {
                 return converter;
             }
@@ -131,22 +131,23 @@ namespace HQ
         /// <param name="settings"></param>
         public CommandRegistry(RegistrySettings settings)
         {
-            _settings = settings;
+            Settings = settings;
 
-            _converters = new ConcurrentDictionary<Type, IObjectConverter>();
-            _contexts = new ConcurrentDictionary<object, IContextObject>();
+            _converters = new DefaultKeyedCollection<Type, IObjectConverter>();
+            _contexts = new DefaultKeyedCollection<object, IContextObject>();
+
             if (settings.EnableDefaultConverters)
             {
-                _converters.TryAdd(typeof(int[]), new IntArrayObjectConverter());
-                _converters.TryAdd(typeof(int), new IntObjectConverter());
-                _converters.TryAdd(typeof(string[]), new StringArrayObjectConverter());
+                _converters.Store(typeof(int[]), new IntArrayObjectConverter());
+                _converters.Store(typeof(int), new IntObjectConverter());
+                _converters.Store(typeof(string[]), new StringArrayObjectConverter());
             }
 
             if (settings.Converters != null)
             {
                 foreach (IObjectConverter converter in settings.Converters)
                 {
-                    _converters.TryAdd(converter.ConversionType, converter);
+                    _converters.Store(converter.ConversionType, converter);
                 }
             }
 
@@ -165,7 +166,7 @@ namespace HQ
         public void StoreContext(object key, IContextObject context)
         {
             //Attempts to store multiple contexts in the same key will overwrite
-            _contexts.AddOrUpdate(key, context, (k, c) => { return context; });
+            _contexts.Store(key, context);
         }
 
         /// <summary>
@@ -176,7 +177,7 @@ namespace HQ
         /// <returns></returns>
         public TContext RetrieveContext<TContext>(object key) where TContext : IContextObject
         {
-            if (!_contexts.TryGetValue(key, out IContextObject ctx))
+            if (!_contexts.TryRetrieve(key, out IContextObject ctx))
             {
                 throw new ArgumentException($"No key found with value '{key}'", nameof(key));
             }
@@ -208,7 +209,7 @@ namespace HQ
         {
             ThrowIfDisposed();
 
-            if (!_contexts.TryGetValue(key, out IContextObject ctx))
+            if (!_contexts.TryRetrieve(key, out IContextObject ctx))
             {
                 throw new ArgumentException($"No key found with value '{key}'", nameof(key));
             }

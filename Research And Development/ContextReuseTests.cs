@@ -30,6 +30,11 @@ namespace RnD
 
             public ConcurrentDictionary<object, object> Storage => _storage;
 
+            public void Clear()
+            {
+                throw new NotImplementedException();
+            }
+
             public dynamic Retrieve(object key)
             {
                 return _storage[key];

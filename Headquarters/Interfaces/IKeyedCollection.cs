@@ -3,42 +3,48 @@
 namespace HQ.Interfaces
 {
     /// <summary>
-    /// Defines an container that allows for storing objects identified by keys
+    /// 
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public interface IConcurrentStorage<T>
+    /// <typeparam name="TKey"></typeparam>
+    /// <typeparam name="TValue"></typeparam>
+    public interface IKeyedCollection<TKey, TValue>
     {
         /// <summary>
         /// The backing store for objects stored with this interface
         /// </summary>
-        ConcurrentDictionary<T, object> Storage { get; }
-
+        ConcurrentDictionary<TKey, TValue> Storage { get; }
+        
         /// <summary>
-        /// Gets or sets the value of the key referenced by <paramref name="key"/>
+        /// Gets or sets the value of a key
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        dynamic this[T key] { get; set; }
+        TValue this[TKey key] { get; set; }
 
         /// <summary>
-        /// Stores an object, making it accessible via <see cref="Retrieve(T)"/>
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
-        void Store(T key, object value);
-
-        /// <summary>
-        /// Retrieves an object of a given type
-        /// </summary>
-        /// <returns></returns>
-        dynamic Retrieve(T key);
-
-        /// <summary>
-        /// Attempts to retrieve an object from a given key
+        /// Stores a value, tying it to the given key
         /// </summary>
         /// <param name="key"></param>
         /// <param name="value"></param>
+        void Store(TKey key, TValue value);
+
+        /// <summary>
+        /// Retrieves a value from a given key
+        /// </summary>
         /// <returns></returns>
-        bool TryRetrieve(T key, out dynamic value);
+        TValue Retrieve(TKey key);
+
+        /// <summary>
+        /// Attempts to retrieve a value from a given key
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        bool TryRetrieve(TKey key, out TValue value);
+
+        /// <summary>
+        /// Clears the collection
+        /// </summary>
+        void Clear();
     }
 }
