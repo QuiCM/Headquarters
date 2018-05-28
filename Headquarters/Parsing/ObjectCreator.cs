@@ -119,7 +119,7 @@ namespace HQ.Parsing
         public static object CreateArray(Type type, object[] arguments, IContextObject ctx)
         {
             Type elementType = type.GetElementType();
-            IObjectConverter converter = ctx.Registry.GetConverter(elementType);
+            IObjectConverter converter = ctx.Registry.Converters.Retrieve(elementType);
 
             string failedConvert = $"Failed to convert '{string.Join(" ", arguments)}' to Type {type.Name}.";
             string failedCreate = $"failed to create an instance of type {elementType.Name} from argument ";

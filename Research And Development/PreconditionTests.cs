@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Threading;
-using HQ;
+﻿using HQ;
 using HQ.Attributes;
 using HQ.Interfaces;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading;
 
 namespace RnD
 {
     [TestClass]
-    public class ContextReuseTests
+    public class PreconditionTests
     {
         public class NumberContext : IContextObject
         {
@@ -50,6 +52,12 @@ namespace RnD
         [CommandClass]
         public class TestCommand
         {
+            [Precondition]
+            public InputResult Precondition(NumberContext context)
+            {
+                return context["count"] > 0 ? InputResult.Success : InputResult.Failure;
+            }
+
             /// <summary>
             /// A test executor for this command.
             /// </summary>
@@ -66,8 +74,7 @@ namespace RnD
             }
         }
 
-        private object _key = new object();
-        private object _key2 = new object();
+        private readonly object _key = new object();
 
         [TestMethod]
         public void TestPersistedContext()
@@ -81,19 +88,51 @@ namespace RnD
 
                 registry.Contexts.Store(_key, context);
 
-                //Two keys should not point to the same context. Unless they're identical
-                Assert.AreEqual(registry.Contexts.Retrieve(_key2), default(NumberContext));
-                
-                //Count should be 1
-                registry.HandleInput("unit-test", _key, (result, output) => {mre.Set(); });
+                //Count should be 0 - result should be a failure due to precondition
+                registry.HandleInput("unit-test", _key, (result, output) =>
+                {
+                    Assert.AreEqual(InputResult.Failure, result);
+                    mre.Set();
+                });
                 mre.WaitOne();
                 mre.Reset();
+
+                context["count"] = 1;
+
                 //Count should be 2
-                registry.HandleInput("unit-test", _key, (result, output) => {mre.Set(); });
+                registry.HandleInput("unit-test", _key, (result, output) =>
+                {
+                    mre.Set();
+                });
                 mre.WaitOne();
                 mre.Reset();
+
                 //Count should be 3
-                registry.HandleInput("unit-test", _key, (result, output) => {mre.Set(); });
+                registry.HandleInput("unit-test", _key, (result, output) =>
+                {
+                    mre.Set();
+                });
+                mre.WaitOne();
+                mre.Reset();
+
+                int num = context["count"];
+                context["count"] = 0;
+                //Count is 0, result should be failure
+                registry.HandleInput("unit-test", _key, (result, output) =>
+                {
+                    Assert.AreEqual(InputResult.Failure, result);
+                    mre.Set();
+                });
+                mre.WaitOne();
+                mre.Reset();
+
+                context["count"] = num;
+
+                //Count should be 4
+                registry.HandleInput("unit-test", _key, (result, output) =>
+                {
+                    mre.Set();
+                });
                 mre.WaitOne();
                 mre.Reset();
 
@@ -102,7 +141,7 @@ namespace RnD
                 //Ensure that context and retrieved actually map to the same objects with the same values
                 Assert.AreEqual(context["count"], retrieved["count"]);
                 //And that the count is actually 3
-                Assert.AreEqual(3, retrieved["count"]);
+                Assert.AreEqual(4, retrieved["count"]);
             }
         }
     }

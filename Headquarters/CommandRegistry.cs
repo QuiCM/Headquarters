@@ -33,7 +33,7 @@ namespace HQ
         public RegistrySettings Settings { get; }
 
         /// <summary>
-        /// A concurrent dictionary with Types as keys, and IObjectConverters to convert those Types as values
+        /// Contains registered converters for this registry instance
         /// </summary>
         public IKeyedCollection<Type, IObjectConverter> Converters
         {
@@ -45,54 +45,17 @@ namespace HQ
         }
 
         /// <summary>
-        /// Adds a converter for the given type
+        /// Contains registered contexts for this registry instance
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="converter"></param>
-        public void AddConverter<T>(IObjectConverter converter)
+        public IKeyedCollection<object, IContextObject> Contexts
         {
-            AddConverter(typeof(T), converter);
-        }
-
-        /// <summary>
-        /// Adds a converter for the given type
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="converter"></param>
-        public void AddConverter(Type type, IObjectConverter converter)
-        {
-            ThrowIfDisposed();
-
-            _converters.Store(type, converter);
-        }
-
-        /// <summary>
-        /// Gets an IObjectConverter for the given type
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public IObjectConverter GetConverter<T>()
-        {
-            return GetConverter(typeof(T));
-        }
-
-        /// <summary>
-        /// Gets an IObjectConverter for the given type
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public IObjectConverter GetConverter(Type type)
-        {
-            ThrowIfDisposed();
-
-            if (_converters.TryRetrieve(type, out IObjectConverter converter))
+            get
             {
-                return converter;
+                ThrowIfDisposed();
+                return _contexts;
             }
-
-            return null;
         }
-
+        
         /// <summary>
         /// Sets the parser to be used when parsing commands.
         /// </summary>
@@ -155,34 +118,6 @@ namespace HQ
 
             _queue = new CommandQueue(this, new System.Threading.CancellationTokenSource());
             _queue.BeginProcessing();
-        }
-
-        /// <summary>
-        /// Stores a context with a given key. Passing this key to <see cref="HandleInput(string, object, InputResultDelegate)"/>
-        /// will cause the input to be handled with the given context
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="context"></param>
-        public void StoreContext(object key, IContextObject context)
-        {
-            //Attempts to store multiple contexts in the same key will overwrite
-            _contexts.Store(key, context);
-        }
-
-        /// <summary>
-        /// Retrieves a context object stored with the given key
-        /// </summary>
-        /// <typeparam name="TContext"></typeparam>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        public TContext RetrieveContext<TContext>(object key) where TContext : IContextObject
-        {
-            if (!_contexts.TryRetrieve(key, out IContextObject ctx))
-            {
-                throw new ArgumentException($"No key found with value '{key}'", nameof(key));
-            }
-
-            return (TContext)ctx;
         }
 
         /// <summary>

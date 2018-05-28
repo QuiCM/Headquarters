@@ -10,11 +10,11 @@
     <RepositoryUrl>https://github.com/QuiCM/Headquarters</RepositoryUrl>
     <Copyright>2018</Copyright>
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageReleaseNotes>Adds support for preconditions on commands</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/QuiCM/Headquarters</PackageProjectUrl>
-    <AssemblyVersion>1.8.1.1</AssemblyVersion>
-    <FileVersion>1.8.1.1</FileVersion>
-    <Version>1.8.1.1</Version>
+    <AssemblyVersion>1.8.2</AssemblyVersion>
+    <FileVersion>1.8.2</FileVersion>
+    <Version>1.8.2</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
