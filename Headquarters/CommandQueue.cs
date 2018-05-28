@@ -53,10 +53,13 @@ namespace HQ
         /// This queue must be concurrent as it can be modified on different threads at any time
         /// </summary>
         private ConcurrentQueue<QueueData> _queue;
+        /// <summary>
+        /// Commands maintained by the queue
+        /// </summary>
         private List<CommandMetadata> _metadata;
         private CancellationTokenSource _tokenSource;
-        private Object _lock;
-        private Object _scanLock;
+        private readonly Object _lock;
+        private readonly Object _scanLock;
         private ManualResetEvent _mre;
         private CommandRegistry _registry;
         private List<ScannerData> _scanners;
@@ -249,6 +252,7 @@ namespace HQ
                     continue;
                 }
 
+                //If the queue has no data, wait for it to get data
                 if (!_queue.TryDequeue(out QueueData data))
                 {
                     _mre.Reset();
@@ -268,7 +272,7 @@ namespace HQ
                     continue;
                 }
 
-                string input = data.Input; //We don't lower the data because case sensitivity is an option for command matching
+                string input = data.Input;
 
                 CommandMetadata metadata;
                 lock (_lock)
@@ -278,25 +282,30 @@ namespace HQ
                     metadata = metadatas.FirstOrDefault();
                 }
 
+                //No command matches, so ignore this input
                 if (metadata == null)
                 {
                     data.Callback?.Invoke(InputResult.Unhandled, null);
-
-                    //No command matches, so ignore this input
                     _mre.Set();
                     continue;
                 }
 
+                //Retrieve the executor metadata
                 CommandExecutorData exeData = metadata.GetFirstOrDefaultExecutorData(input);
-
                 RegexString trigger = exeData.ExecutorAttribute.CommandMatcher;
                 input = trigger.RemoveMatchedString(input).TrimStart();
 
+                //Retrieve the parser instance
                 AbstractParser parser = _registry.GetParser(_registry, input, null, metadata, exeData, data.Context, data.Callback);
 
                 try
                 {
+                    //Parse the command
                     parser.Start();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
                 }
                 finally
                 {

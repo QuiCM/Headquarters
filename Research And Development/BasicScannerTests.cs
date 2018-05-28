@@ -14,12 +14,11 @@ namespace RnD
         const string ScannerRegex = @"Scanner (?<test>\w+) (?<test2>\d+)";
 
         [TestMethod]
-        public void TestScanner()
+        public void BasicScannerTestScanner()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
-                ManualResetEvent mre = new ManualResetEvent(false);
-
                 object output = null;
                 registry.AddScanner(ScannerRegex, (IContextObject ctx, string match, LightweightParser parser) =>
                 {
@@ -44,12 +43,11 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestAsyncScanner()
+        public void BasicScannerTestAsyncScanner()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
-                ManualResetEvent mre = new ManualResetEvent(false);
-
                 object output = null;
                 registry.AddAsyncScanner(ScannerRegex, async (IContextObject ctx, string match, LightweightParser parser) =>
                 {

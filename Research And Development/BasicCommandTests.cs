@@ -24,14 +24,14 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestVerification()
+        public void BasicCommandTestVerification()
         {
             //Asserts that the verifier can successfully handle the command without throwing an exception
             FormatVerifier verifier = new FormatVerifier(typeof(TestCommand)).Run();
         }
 
         [TestMethod]
-        public void TestAddition()
+        public void BasicCommandTestAddition()
         {
             //Asserts that a command registry can register the command without throwing an exception
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
@@ -41,15 +41,13 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestExecution()
+        public void BasicCommandTestExecution()
         {
             //Asserts that a command can be run and returns the expected result
-
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
                 registry.AddCommand(typeof(TestCommand));
-
-                ManualResetEvent mre = new ManualResetEvent(false);
 
                 object testOutput = null;
                 registry.HandleInput("unit-test", null, (result, output) => { testOutput = output; mre.Set(); });

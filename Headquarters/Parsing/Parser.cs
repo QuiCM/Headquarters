@@ -63,10 +63,18 @@ namespace HQ.Parsing
             try
             {
                 CheckBasicArgumentRules();
-                AttemptSwitchToSubcommand();
-                ConvertArgumentsToTypes(Context);
 
                 object command = Activator.CreateInstance(Metadata.Type);
+
+                if (Metadata.Precondition.Invoke(command, Context) == InputResult.Failure)
+                {
+                    Output = $"[{nameof(Metadata.Type)}]: Precondition failed, command execution halted";
+                    Callback?.Invoke(InputResult.Failure, Output);
+                    return;
+                }
+
+                AttemptSwitchToSubcommand();
+                ConvertArgumentsToTypes(Context);
                 Output = ExecutorData.ExecutingMethod.Invoke(command, Objects.ToArray());
 
                 if (ExecutorData.AsyncExecution)
@@ -171,7 +179,7 @@ namespace HQ.Parsing
                     continue;
                 }
 
-                IObjectConverter converter = Registry.GetConverter(kvp.Key.ParameterType);
+                IObjectConverter converter = Registry.Converters.Retrieve(kvp.Key.ParameterType);
                 if (converter == null)
                 {
                     //Use the object creator to attempt a conversion

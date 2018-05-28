@@ -28,13 +28,12 @@ namespace RnD
         }
 
         [TestMethod]
-        public void TestQuotationParsing()
+        public void QuotationParsingTest()
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
+            using (ManualResetEvent mre = new ManualResetEvent(false))
             {
                 registry.AddCommand(typeof(TestCommand));
-
-                ManualResetEvent mre = new ManualResetEvent(false);
 
                 object testOutput = null;
                 registry.HandleInput($"quote me {M1} {M2}", null, (result, output) => { testOutput = output; mre.Set(); });

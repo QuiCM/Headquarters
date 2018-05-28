@@ -17,6 +17,10 @@ namespace HQ
         /// Executing methods present on the command's type
         /// </summary>
         public IEnumerable<CommandExecutorData> Executors { get; internal set; }
+        /// <summary>
+        /// Precondition method present on the command's type
+        /// </summary>
+        public CommandPrecondition Precondition { get; internal set; }
 
         /// <summary>
         /// Returns all executors that match the given input

@@ -10,13 +10,12 @@ namespace HQ
     /// </summary>
     public class ContextObject : IContextObject
     {
-        private ConcurrentDictionary<object, object> _storage = new ConcurrentDictionary<object, object>();
-
         /// <inheritdoc/>
         /// <summary>
-        /// See <see cref="IConcurrentStorage{T}.Storage"/>
+        /// See <see cref="IKeyedCollection{TKey, TValue}.Storage"/>
         /// </summary>
-        public ConcurrentDictionary<object, object> Storage => _storage;
+        public ConcurrentDictionary<object, object> Storage { get; } = new ConcurrentDictionary<object, object>();
+
         /// <inheritdoc/>
         /// <summary>
         /// See <see cref="IContextObject.Registry"/>
@@ -30,7 +29,7 @@ namespace HQ
 
         /// <inheritdoc/>
         /// <summary>
-        /// See <see cref="IConcurrentStorage{T}.this[T]"/>
+        /// See <see cref="IKeyedCollection{TKey, TValue}.this[TKey]"/>
         /// </summary>
         public dynamic this[object type]
         {
@@ -49,7 +48,7 @@ namespace HQ
 
         /// <inheritdoc/>
         /// <summary>
-        /// See <see cref="IConcurrentStorage{T}.Store(T, object)"/>
+        /// See <see cref="IKeyedCollection{TKey, TValue}.Store(TKey, TValue)"/>
         /// </summary>
         public void Store(object key, object value)
         {
@@ -60,7 +59,7 @@ namespace HQ
 
         /// <inheritdoc/>
         /// <summary>
-        /// See <see cref="IConcurrentStorage{T}.Retrieve(T)"/>
+        /// See <see cref="IKeyedCollection{TKey, TValue}.Retrieve(TKey)"/>
         /// </summary>
         public dynamic Retrieve(object key)
         {
@@ -76,7 +75,7 @@ namespace HQ
 
         /// <inheritdoc/>
         /// <summary>
-        /// See <see cref="IConcurrentStorage{T}.TryRetrieve(T, out dynamic)"/>
+        /// See <see cref="IKeyedCollection{TKey, TValue}.TryRetrieve(TKey, out TValue)"/>
         /// </summary>
         public bool TryRetrieve(object key, out dynamic value)
         {
@@ -97,6 +96,17 @@ namespace HQ
             {
                 throw new InvalidOperationException("This context has been finalized.");
             }
+        }
+
+        /// <inheritdoc/>
+        /// <summary>
+        /// See <see cref="IKeyedCollection{TKey, TValue}.Clear()"/>
+        /// </summary>
+        public void Clear()
+        {
+            ThrowIfFinalized();
+
+            Storage.Clear();
         }
     }
 }

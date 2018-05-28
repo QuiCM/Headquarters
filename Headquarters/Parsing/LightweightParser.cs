@@ -95,7 +95,7 @@ namespace HQ.Parsing
                     continue;
                 }
 
-                IObjectConverter converter = _ctx.Registry.GetConverter(type);
+                IObjectConverter converter = _ctx.Registry.Converters.Retrieve(type);
 
                 if (converter == null)
                 {

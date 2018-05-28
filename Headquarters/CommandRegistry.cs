@@ -4,6 +4,7 @@ using HQ.Parsing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using HQ.Collections;
 
 namespace HQ
 {
@@ -21,17 +22,20 @@ namespace HQ
     /// </summary>
     public class CommandRegistry : IDisposable
     {
-        private RegistrySettings _settings;
         private CommandQueue _queue;
-        private ConcurrentDictionary<Type, IObjectConverter> _converters;
+        private DefaultKeyedCollection<Type, IObjectConverter> _converters;
+        private DefaultKeyedCollection<object, IContextObject> _contexts;
         private Type _parser = typeof(Parser);
 
-        public RegistrySettings Settings => _settings;
+        /// <summary>
+        /// Provides the settings used to create this registry
+        /// </summary>
+        public RegistrySettings Settings { get; }
 
         /// <summary>
-        /// A concurrent dictionary with Types as keys, and IObjectConverters to convert those Types as values
+        /// Contains registered converters for this registry instance
         /// </summary>
-        public ConcurrentDictionary<Type, IObjectConverter> Converters
+        public IKeyedCollection<Type, IObjectConverter> Converters
         {
             get
             {
@@ -41,54 +45,17 @@ namespace HQ
         }
 
         /// <summary>
-        /// Adds a converter for the given type
+        /// Contains registered contexts for this registry instance
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="converter"></param>
-        public void AddConverter<T>(IObjectConverter converter)
+        public IKeyedCollection<object, IContextObject> Contexts
         {
-            AddConverter(typeof(T), converter);
-        }
-
-        /// <summary>
-        /// Adds a converter for the given type
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="converter"></param>
-        public void AddConverter(Type type, IObjectConverter converter)
-        {
-            ThrowIfDisposed();
-
-            _converters.AddOrUpdate(type, converter, (n, existing) => converter);
-        }
-
-        /// <summary>
-        /// Gets an IObjectConverter for the given type
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public IObjectConverter GetConverter<T>()
-        {
-            return GetConverter(typeof(T));
-        }
-
-        /// <summary>
-        /// Gets an IObjectConverter for the given type
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public IObjectConverter GetConverter(Type type)
-        {
-            ThrowIfDisposed();
-
-            if (_converters.TryGetValue(type, out IObjectConverter converter))
+            get
             {
-                return converter;
+                ThrowIfDisposed();
+                return _contexts;
             }
-
-            return null;
         }
-
+        
         /// <summary>
         /// Sets the parser to be used when parsing commands.
         /// </summary>
@@ -127,21 +94,23 @@ namespace HQ
         /// <param name="settings"></param>
         public CommandRegistry(RegistrySettings settings)
         {
-            _settings = settings;
+            Settings = settings;
 
-            _converters = new ConcurrentDictionary<Type, IObjectConverter>();
+            _converters = new DefaultKeyedCollection<Type, IObjectConverter>();
+            _contexts = new DefaultKeyedCollection<object, IContextObject>();
+
             if (settings.EnableDefaultConverters)
             {
-                _converters.TryAdd(typeof(int[]), new IntArrayObjectConverter());
-                _converters.TryAdd(typeof(int), new IntObjectConverter());
-                _converters.TryAdd(typeof(string[]), new StringArrayObjectConverter());
+                _converters.Store(typeof(int[]), new IntArrayObjectConverter());
+                _converters.Store(typeof(int), new IntObjectConverter());
+                _converters.Store(typeof(string[]), new StringArrayObjectConverter());
             }
 
             if (settings.Converters != null)
             {
                 foreach (IObjectConverter converter in settings.Converters)
                 {
-                    _converters.TryAdd(converter.ConversionType, converter);
+                    _converters.Store(converter.ConversionType, converter);
                 }
             }
 
@@ -161,6 +130,24 @@ namespace HQ
         public void HandleInput(string input, IContextObject ctx, InputResultDelegate callback)
         {
             ThrowIfDisposed();
+
+            _queue.QueueInputHandling(input, ctx, callback);
+        }
+
+        /// <summary>
+        /// Queues an input for handling
+        /// </summary>
+        /// <param name="input">The string from which command data will be parsed</param>
+        /// <param name="key">A key used to lookup a context object</param>
+        /// <param name="callback">A callback method for when the command completes</param>
+        public void HandleInput(string input, object key, InputResultDelegate callback)
+        {
+            ThrowIfDisposed();
+
+            if (!_contexts.TryRetrieve(key, out IContextObject ctx))
+            {
+                throw new ArgumentException($"No key found with value '{key}'", nameof(key));
+            }
 
             _queue.QueueInputHandling(input, ctx, callback);
         }

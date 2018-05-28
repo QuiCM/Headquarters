@@ -39,14 +39,13 @@ namespace HQ.Parsing
         private Type _type;
         private List<CommandExecutorData> _executors;
         private List<CommandExecutorData> _subExecutors;
+        private CommandPrecondition _precondition;
         private int requiredArgumentCount;
-
-        private CommandMetadata _commandMetadata;
 
         /// <summary>
         /// Metadata about the command discovered during the verification process
         /// </summary>
-        public CommandMetadata Metadata => _commandMetadata;
+        public CommandMetadata Metadata { get; private set; }
 
         /// <summary>
         /// Creates a new FormatVerifier to verify the given type
@@ -83,10 +82,13 @@ namespace HQ.Parsing
                 data.Subcommands = _subExecutors.Where(sub => sub.ParentCommand == data);
             }
 
-            _commandMetadata = new CommandMetadata
+            DiscoverPrecondition();
+
+            Metadata = new CommandMetadata
             {
                 Executors = _executors,
-                Type = _type
+                Type = _type,
+                Precondition = _precondition
             };
 
             return this;
@@ -133,6 +135,35 @@ namespace HQ.Parsing
                     $"Failed to discover an executor for command '{_type.Name}'."
                 );
             }
+        }
+
+        /// <summary>
+        /// Discovers the first precondition method specified on the command class
+        /// </summary>
+        public void DiscoverPrecondition()
+        {
+            MethodInfo pre = _type.GetRuntimeMethods().FirstOrDefault(m => m.GetCustomAttribute<PreconditionAttribute>() != null);
+            if (pre != null)
+            {
+                if (pre.ReturnType != typeof(InputResult) && pre.ReturnType != typeof(bool))
+                {
+                    throw new CommandParsingException(
+                        ParserFailReason.MalformedExecutor,
+                        $"Precondition must return '{nameof(InputResult)}' or '{nameof(Boolean)}'."
+                    );
+                }
+
+                ParameterInfo[] parameters = pre.GetParameters();
+                if (parameters.Length < 1 || !typeof(IContextObject).GetTypeInfo().IsAssignableFrom(parameters[0].ParameterType))
+                {
+                    throw new CommandParsingException(
+                        ParserFailReason.MalformedExecutor,
+                        $"Precondition must have one parameter of type '{nameof(IContextObject)}"
+                    );
+                }
+            }
+
+            _precondition = new CommandPrecondition(pre);
         }
 
         /// <summary>
