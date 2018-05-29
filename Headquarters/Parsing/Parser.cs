@@ -65,8 +65,19 @@ namespace HQ.Parsing
                 CheckBasicArgumentRules();
 
                 object command = Activator.CreateInstance(Metadata.Type);
+                InputResult preResult;
 
-                if (Metadata.Precondition.Invoke(command, Context) == InputResult.Failure)
+                if (Metadata.Precondition.IsAsync)
+                {
+                    Task<InputResult> task = Metadata.Precondition.InvokeAsync(command, Context);
+                    preResult = task.GetAwaiter().GetResult();
+                }
+                else
+                {
+                    preResult = Metadata.Precondition.Invoke(command, Context);
+                }
+
+                if (preResult == InputResult.Failure)
                 {
                     Output = $"[{nameof(Metadata.Type)}]: Precondition failed, command execution halted";
                     Callback?.Invoke(InputResult.Failure, Output);
