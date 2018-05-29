@@ -143,14 +143,30 @@ namespace HQ.Parsing
         public void DiscoverPrecondition()
         {
             MethodInfo pre = _type.GetRuntimeMethods().FirstOrDefault(m => m.GetCustomAttribute<PreconditionAttribute>() != null);
+            bool async = pre?.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null;
+
             if (pre != null)
             {
-                if (pre.ReturnType != typeof(InputResult) && pre.ReturnType != typeof(bool))
+                if (async)
                 {
-                    throw new CommandParsingException(
-                        ParserFailReason.MalformedExecutor,
-                        $"Precondition must return '{nameof(InputResult)}' or '{nameof(Boolean)}'."
-                    );
+                    if (pre.ReturnType != typeof(Task<InputResult>) && pre.ReturnType != typeof(Task<bool>))
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.MalformedExecutor,
+                            $"Async Precondition must return '{nameof(Task<InputResult>)}' or '{nameof(Task<bool>)}'."
+                        );
+                    }
+                }
+
+                if (!async)
+                {
+                    if (pre.ReturnType != typeof(InputResult) && pre.ReturnType != typeof(bool))
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.MalformedExecutor,
+                            $"Precondition must return '{nameof(InputResult)}' or '{nameof(Boolean)}'."
+                        );
+                    }
                 }
 
                 ParameterInfo[] parameters = pre.GetParameters();
@@ -163,7 +179,7 @@ namespace HQ.Parsing
                 }
             }
 
-            _precondition = new CommandPrecondition(pre);
+            _precondition = new CommandPrecondition(pre, async);
         }
 
         /// <summary>

@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace RnD
 {
@@ -74,15 +75,55 @@ namespace RnD
             }
         }
 
+        [CommandClass]
+        public class TestCommandAsync
+        {
+            [Precondition]
+            public async Task<InputResult> Precondition(NumberContext context)
+            {
+                await Task.Delay(500);
+                return context["count"] > 0 ? InputResult.Success : InputResult.Failure;
+            }
+
+            [CommandExecutor("A unit testing command",
+                @"unit-test",
+                RegexStringOptions.None,
+                "unit-test")]
+            public object TestExecutor(NumberContext context)
+            {
+                context["count"] += 1;
+                return context["count"];
+            }
+        }
+
         private readonly object _key = new object();
 
         [TestMethod]
-        public void TestPersistedContext()
+        public void TestPreconditions()
+        {
+            Body(isAsync: false);
+        }
+
+        [TestMethod]
+        public void TestPreconditionsAsync()
+        {
+            Body(isAsync: true);
+        }
+
+        public void Body(bool isAsync)
         {
             using (CommandRegistry registry = new CommandRegistry(new RegistrySettings()))
             using (ManualResetEvent mre = new ManualResetEvent(false))
             {
-                registry.AddCommand(typeof(TestCommand));
+                if (isAsync)
+                {
+                    registry.AddCommand(typeof(TestCommandAsync));
+                }
+                else
+                {
+                    registry.AddCommand(typeof(TestCommand));
+                }
+
                 NumberContext context = new NumberContext(registry);
                 context["count"] = 0;
 

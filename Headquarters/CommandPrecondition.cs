@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace HQ
 {
@@ -15,14 +16,20 @@ namespace HQ
         /// Method containing the precondition
         /// </summary>
         public MethodInfo Precondition { get; }
+        /// <summary>
+        /// Whether the precondition method should be executed asynchronously or not
+        /// </summary>
+        public bool IsAsync { get; set; }
 
         /// <summary>
         /// Constructs a new CommandPrecondition instance with the given method defining the precondition
         /// </summary>
         /// <param name="pre"></param>
-        public CommandPrecondition(MethodInfo pre)
+        /// <param name="isAsync"></param>
+        public CommandPrecondition(MethodInfo pre, bool isAsync)
         {
             Precondition = pre;
+            IsAsync = isAsync;
         }
 
         /// <summary>
@@ -40,12 +47,35 @@ namespace HQ
 
             object ret = Precondition.Invoke(invoker, new object[] { context });
 
-            if (ret is bool)
+            if (ret is bool bRet)
             {
-                return ((bool)ret) == true ? InputResult.Success : InputResult.Failure;
+                return bRet == true ? InputResult.Success : InputResult.Failure;
             }
 
             return (InputResult)ret;
+        }
+
+        /// <summary>
+        /// Asynchronously invokes the precondition
+        /// </summary>
+        /// <param name="invoker"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public async Task<InputResult> InvokeAsync(object invoker, IContextObject context)
+        {
+            if (Precondition == null)
+            {
+                return InputResult.Unhandled;
+            }
+
+            object ret = Precondition.Invoke(invoker, new object[] { context });
+
+            if (ret is Task<bool> taskBool)
+            {
+                return await taskBool ? InputResult.Success : InputResult.Failure;
+            }
+
+            return await (ret as Task<InputResult>);
         }
     }
 }
