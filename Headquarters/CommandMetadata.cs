@@ -21,6 +21,10 @@ namespace HQ
         /// Precondition method present on the command's type
         /// </summary>
         public CommandPrecondition Precondition { get; internal set; }
+        /// <summary>
+        /// Error handler method present on the command's type
+        /// </summary>
+        public CommandErrorHandler ErrorHandler { get; internal set; }
 
         /// <summary>
         /// Returns all executors that match the given input
