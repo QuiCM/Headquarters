@@ -60,11 +60,10 @@ namespace HQ.Parsing
         /// </summary>
         protected override void ThreadCallback()
         {
+            object command = Activator.CreateInstance(Metadata.Type);
             try
             {
                 CheckBasicArgumentRules();
-
-                object command = Activator.CreateInstance(Metadata.Type);
                 InputResult preResult;
 
                 if (Metadata.Precondition.IsAsync)
@@ -96,8 +95,33 @@ namespace HQ.Parsing
 
                 Callback?.Invoke(InputResult.Success, Output);
             }
+            catch (CommandParsingException e)
+            {
+                if (Metadata.ErrorHandler.IsAsync)
+                {
+                    Task task = Metadata.ErrorHandler.InvokeAsync(command, Context, (Type)e.Data["ExpectedType"], e.Data["FailedInput"] as string, e);
+                    task.GetAwaiter().GetResult();
+                }
+                else
+                {
+                    Metadata.ErrorHandler.Invoke(command, Context, (Type)e.Data["ExpectedType"], e.Data["FailedInput"] as string, e);
+                }
+
+                Output = e;
+                Callback?.Invoke(InputResult.Failure, Output);
+            }
             catch (Exception e)
             {
+                if (Metadata.ErrorHandler.IsAsync)
+                {
+                    Task task = Metadata.ErrorHandler.InvokeAsync(command, Context, null, Input, e);
+                    task.GetAwaiter().GetResult();
+                }
+                else
+                {
+                    Metadata.ErrorHandler.Invoke(command, Context, null, Input, e);
+                }
+
                 Output = e;
                 Callback?.Invoke(InputResult.Failure, Output);
             }
@@ -110,7 +134,10 @@ namespace HQ.Parsing
         {
             if (Input == null)
             {
-                throw new CommandParsingException(ParserFailReason.InvalidArguments, "Null was provided as arguments.");
+                CommandParsingException ex = new CommandParsingException(ParserFailReason.InvalidArguments, "Null was provided as arguments.");
+                ex.Data.Add("FailedInput", null);
+                ex.Data.Add("ExpectedType", null);
+                throw ex;
             }
         }
 
@@ -204,11 +231,14 @@ namespace HQ.Parsing
 
                     if (conversion == null)
                     {
-                        throw new CommandParsingException(
-                               ParserFailReason.ParsingFailed,
-                               $"Type conversion failed: Failed to convert '{string.Join(" ", args)}' to Type '{ kvp.Key.ParameterType.Name }'.",
-                               new Exception($"Conversion failed in '{converter.GetType().Name}.{nameof(IObjectConverter.ConvertFromArray)}'")
+                        CommandParsingException ex = new CommandParsingException(
+                               type: ParserFailReason.ParsingFailed,
+                               message: $"Type conversion failed: Failed to convert '{string.Join(" ", args)}' to Type '{ kvp.Key.ParameterType.Name }'.",
+                               innerException: new Exception($"Conversion failed in '{converter.GetType().Name}.{nameof(IObjectConverter.ConvertFromArray)}'")
                         );
+                        ex.Data.Add("FailedInput", count > 1 ? string.Join(" ", (string[])args) : args[0].ToString());
+                        ex.Data.Add("ExpectedType", kvp.Key.ParameterType);
+                        throw ex;
                     }
 
                     Objects.Add(conversion);
