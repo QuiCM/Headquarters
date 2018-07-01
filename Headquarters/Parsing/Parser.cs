@@ -64,12 +64,14 @@ namespace HQ.Parsing
             try
             {
                 CheckBasicArgumentRules();
-                InputResult preResult;
+                InputResult preResult = InputResult.Failure;
 
                 if (Metadata.Precondition.IsAsync)
                 {
-                    Task<InputResult> task = Metadata.Precondition.InvokeAsync(command, Context);
-                    preResult = task.GetAwaiter().GetResult();
+                    Task.Run(async () =>
+                    {
+                        preResult = await Metadata.Precondition.InvokeAsync(command, Context);
+                    }).Wait();
                 }
                 else
                 {
@@ -89,8 +91,11 @@ namespace HQ.Parsing
 
                 if (ExecutorData.AsyncExecution)
                 {
-                    Task<object> task = (Task<object>)Output;
-                    Output = task.GetAwaiter().GetResult();
+                    Task.Run(async () =>
+                    {
+                        Task<object> task = (Task<object>)Output;
+                        Output = await task;
+                    }).Wait();
                 }
 
                 Callback?.Invoke(InputResult.Success, Output);
@@ -99,8 +104,11 @@ namespace HQ.Parsing
             {
                 if (Metadata.ErrorHandler.IsAsync)
                 {
-                    Task task = Metadata.ErrorHandler.InvokeAsync(command, Context, (Type)e.Data["ExpectedType"], e.Data["FailedInput"] as string, e);
-                    task.GetAwaiter().GetResult();
+                    Task.Run(async () =>
+                    {
+                        Task task = Metadata.ErrorHandler.InvokeAsync(command, Context, (Type)e.Data["ExpectedType"], e.Data["FailedInput"] as string, e);
+                        await task;
+                    }).Wait();
                 }
                 else
                 {
@@ -114,8 +122,11 @@ namespace HQ.Parsing
             {
                 if (Metadata.ErrorHandler.IsAsync)
                 {
-                    Task task = Metadata.ErrorHandler.InvokeAsync(command, Context, null, Input, e);
-                    task.GetAwaiter().GetResult();
+                    Task.Run(async () =>
+                    {
+                        Task task = Metadata.ErrorHandler.InvokeAsync(command, Context, null, Input, e);
+                        await task;
+                    }).Wait();
                 }
                 else
                 {

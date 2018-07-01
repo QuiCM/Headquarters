@@ -37,6 +37,7 @@ namespace HQ
         /// <param name="context"></param>
         /// <param name="expectedType"></param>
         /// <param name="givenValue"></param>
+        /// <param name="ex"></param>
         /// <returns></returns>
         public void Invoke(object invoker, IContextObject context, Type expectedType, string givenValue, Exception ex)
         {
@@ -55,6 +56,7 @@ namespace HQ
         /// <param name="context"></param>
         /// <param name="expectedType"></param>
         /// <param name="givenValue"></param>
+        /// <param name="ex"></param>
         /// <returns></returns>
         public async Task InvokeAsync(object invoker, IContextObject context, Type expectedType, string givenValue, Exception ex)
         {
