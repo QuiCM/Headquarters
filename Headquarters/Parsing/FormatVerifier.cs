@@ -39,14 +39,14 @@ namespace HQ.Parsing
         private Type _type;
         private List<CommandExecutorData> _executors;
         private List<CommandExecutorData> _subExecutors;
+        private CommandPrecondition _precondition;
+        private CommandErrorHandler _errorHandler;
         private int requiredArgumentCount;
-
-        private CommandMetadata _commandMetadata;
 
         /// <summary>
         /// Metadata about the command discovered during the verification process
         /// </summary>
-        public CommandMetadata Metadata => _commandMetadata;
+        public CommandMetadata Metadata { get; private set; }
 
         /// <summary>
         /// Creates a new FormatVerifier to verify the given type
@@ -83,15 +83,20 @@ namespace HQ.Parsing
                 data.Subcommands = _subExecutors.Where(sub => sub.ParentCommand == data);
             }
 
-            _commandMetadata = new CommandMetadata
+            DiscoverPrecondition();
+            DiscoverErrorHandler();
+
+            Metadata = new CommandMetadata
             {
                 Executors = _executors,
-                Type = _type
+                Type = _type,
+                Precondition = _precondition,
+                ErrorHandler = _errorHandler
             };
 
             return this;
         }
-
+        
         /// <summary>
         /// Ensures that the type follows command class rules
         /// </summary>
@@ -133,6 +138,104 @@ namespace HQ.Parsing
                     $"Failed to discover an executor for command '{_type.Name}'."
                 );
             }
+        }
+
+        /// <summary>
+        /// Discovers the first precondition method specified on the command class
+        /// </summary>
+        public void DiscoverPrecondition()
+        {
+            MethodInfo pre = _type.GetRuntimeMethods().FirstOrDefault(m => m.GetCustomAttribute<PreconditionAttribute>() != null);
+            bool async = pre?.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null;
+
+            if (pre != null)
+            {
+                if (async)
+                {
+                    if (pre.ReturnType != typeof(Task<InputResult>) && pre.ReturnType != typeof(Task<bool>))
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.MalformedExecutor,
+                            $"Async Precondition must return '{nameof(Task<InputResult>)}' or '{nameof(Task<bool>)}'."
+                        );
+                    }
+                }
+
+                if (!async)
+                {
+                    if (pre.ReturnType != typeof(InputResult) && pre.ReturnType != typeof(bool))
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.MalformedExecutor,
+                            $"Precondition must return '{nameof(InputResult)}' or '{nameof(Boolean)}'."
+                        );
+                    }
+                }
+
+                ParameterInfo[] parameters = pre.GetParameters();
+                if (parameters.Length < 1 || !typeof(IContextObject).GetTypeInfo().IsAssignableFrom(parameters[0].ParameterType))
+                {
+                    throw new CommandParsingException(
+                        ParserFailReason.MalformedExecutor,
+                        $"Precondition must have one parameter of type '{nameof(IContextObject)}"
+                    );
+                }
+            }
+
+            _precondition = new CommandPrecondition(pre, async);
+        }
+
+        private void DiscoverErrorHandler()
+        {
+            MethodInfo handler = _type.GetRuntimeMethods().FirstOrDefault(m => m.GetCustomAttribute<ErrorHandlerAttribute>() != null);
+            bool async = handler?.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null;
+
+            if (handler != null)
+            {
+                if (async)
+                {
+                    if (handler.ReturnType != typeof(Task))
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.MalformedExecutor,
+                            $"Async Error handler must return '{nameof(Task)}'."
+                        );
+                    }
+                }
+
+                if (!async)
+                {
+                    if (handler.ReturnType != typeof(void))
+                    {
+                        throw new CommandParsingException(
+                            ParserFailReason.MalformedExecutor,
+                            $"Error handler must return 'void'."
+                        );
+                    }
+                }
+
+                ParameterInfo[] parameters = handler.GetParameters();
+                if (parameters.Length < 4)
+                {
+                    throw new CommandParsingException(
+                        ParserFailReason.MalformedExecutor,
+                        $"Error handler signature must match 'async Task MethodName({nameof(IContextObject)}, {nameof(Type)}, string, {nameof(Exception)})'."
+                    );
+                }
+
+                if (!typeof(IContextObject).GetTypeInfo().IsAssignableFrom(parameters[0].ParameterType) ||
+                    parameters[1].ParameterType != typeof(Type) ||
+                    parameters[2].ParameterType != typeof(string) ||
+                    parameters[3].ParameterType != typeof(Exception))
+                {
+                    throw new CommandParsingException(
+                        ParserFailReason.MalformedExecutor,
+                        $"Error handler signature must match 'void MethodName({nameof(IContextObject)}, {nameof(Type)}, string, {nameof(Exception)})'."
+                    );
+                }
+            }
+
+            _errorHandler = new CommandErrorHandler(handler, async);
         }
 
         /// <summary>

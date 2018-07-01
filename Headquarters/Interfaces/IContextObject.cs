@@ -3,7 +3,7 @@
     /// <summary>
     /// An object that describes the context of a command
     /// </summary>
-    public interface IContextObject : IConcurrentStorage<object>
+    public interface IContextObject : IKeyedCollection<object, object>
     {
         /// <summary>
         /// A reference to the CommandRegistry relevant to this context

@@ -89,7 +89,10 @@ namespace HQ.Parsing
                 }
                 catch (Exception e)
                 {
-                    throw new CommandParsingException(ParserFailReason.ParsingFailed, $"TypeConverter {rejectionStr}", e);
+                    CommandParsingException ex = new CommandParsingException(ParserFailReason.ParsingFailed, $"TypeConverter {rejectionStr}", e);
+                    ex.Data.Add("FailedInput", string.Join(" ", arguments));
+                    ex.Data.Add("ExpectedType", type);
+                    throw ex;
                 }
             }
 
@@ -105,7 +108,10 @@ namespace HQ.Parsing
             }
             catch (Exception e)
             {
-                throw new CommandParsingException(ParserFailReason.ParsingFailed, $"Activator {rejectionStr}", e);
+                CommandParsingException ex = new CommandParsingException(ParserFailReason.ParsingFailed, $"Activator {rejectionStr}", e);
+                ex.Data.Add("FailedInput", string.Join(" ", arguments));
+                ex.Data.Add("ExpectedType", type);
+                throw ex;
             }
         }
 
@@ -119,7 +125,7 @@ namespace HQ.Parsing
         public static object CreateArray(Type type, object[] arguments, IContextObject ctx)
         {
             Type elementType = type.GetElementType();
-            IObjectConverter converter = ctx.Registry.GetConverter(elementType);
+            IObjectConverter converter = ctx.Registry.Converters.Retrieve(elementType);
 
             string failedConvert = $"Failed to convert '{string.Join(" ", arguments)}' to Type {type.Name}.";
             string failedCreate = $"failed to create an instance of type {elementType.Name} from argument ";
@@ -135,11 +141,14 @@ namespace HQ.Parsing
 
                     if (conversion == null)
                     {
-                        throw new CommandParsingException(
+                        CommandParsingException ex = new CommandParsingException(
                             ParserFailReason.ParsingFailed,
                             failedConvert,
                             new Exception($"Conversion failed by '{converter.GetType().Name}.'")
                         );
+                        ex.Data.Add("FailedInput", string.Join(" ", arguments));
+                        ex.Data.Add("ExpectedType", type);
+                        throw ex;
                     }
 
                     array.SetValue(conversion, i);
@@ -164,7 +173,10 @@ namespace HQ.Parsing
                     }
                     catch (Exception e)
                     {
-                        throw new CommandParsingException(ParserFailReason.ParsingFailed, $"TypeConverter {failedCreate} '{arguments[i]}'.", e);
+                        CommandParsingException ex = new CommandParsingException(ParserFailReason.ParsingFailed, $"TypeConverter {failedCreate} '{arguments[i]}'.", e);
+                        ex.Data.Add("FailedInput", arguments[i]);
+                        ex.Data.Add("ExpectedType", type.GetElementType());
+                        throw ex;
                     }
                 }
                 else
@@ -178,7 +190,10 @@ namespace HQ.Parsing
                     }
                     catch (Exception e)
                     {
-                        throw new CommandParsingException(ParserFailReason.ParsingFailed, $"Activator {failedCreate} '{arguments[i]}'.", e);
+                        CommandParsingException ex = new CommandParsingException(ParserFailReason.ParsingFailed, $"Activator {failedCreate} '{arguments[i]}'.", e);
+                        ex.Data.Add("FailedInput", arguments[i]);
+                        ex.Data.Add("ExpectedType", type.GetElementType());
+                        throw ex;
                     }
                 }
             }

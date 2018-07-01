@@ -13,36 +13,37 @@ namespace RnD
     {
         public class NumberContext : IContextObject
         {
-            private ConcurrentDictionary<object, object> _storage;
-            private CommandRegistry _registry;
-
             public NumberContext(CommandRegistry registry)
             {
-                _registry = registry;
-                _storage = new ConcurrentDictionary<object, object>();
+                Registry = registry;
+                Storage = new ConcurrentDictionary<object, object>();
             }
 
             public dynamic this[object key] { get => Retrieve(key); set => Store(key, value); }
 
-            public CommandRegistry Registry => _registry;
-
+            public CommandRegistry Registry { get; }
             public bool Finalized { get; set; }
 
-            public ConcurrentDictionary<object, object> Storage => _storage;
+            public ConcurrentDictionary<object, object> Storage { get; }
+
+            public void Clear()
+            {
+                throw new NotImplementedException();
+            }
 
             public dynamic Retrieve(object key)
             {
-                return _storage[key];
+                return Storage[key];
             }
 
             public void Store(object key, object value)
             {
-                _storage.AddOrUpdate(key, value, (k, v) => value);
+                Storage.AddOrUpdate(key, value, (k, v) => value);
             }
 
             public bool TryRetrieve(object key, out dynamic value)
             {
-                return _storage.TryGetValue(key, out value);
+                return Storage.TryGetValue(key, out value);
             }
         }
 
@@ -78,22 +79,25 @@ namespace RnD
                 NumberContext context = new NumberContext(registry);
                 context["count"] = 0;
 
-                registry.StoreContext(_key, context);
+                registry.Contexts.Store(_key, context);
 
                 //Two keys should not point to the same context. Unless they're identical
-                Assert.ThrowsException<ArgumentException>(() => registry.RetrieveContext<NumberContext>(_key2));
-
+                Assert.AreEqual(registry.Contexts.Retrieve(_key2), default(NumberContext));
+                
                 //Count should be 1
-                registry.HandleInput("unit-test", _key, (result, output) => { mre.Set(); });
+                registry.HandleInput("unit-test", _key, (result, output) => {mre.Set(); });
                 mre.WaitOne();
+                mre.Reset();
                 //Count should be 2
-                registry.HandleInput("unit-test", _key, (result, output) => { mre.Set(); });
+                registry.HandleInput("unit-test", _key, (result, output) => {mre.Set(); });
                 mre.WaitOne();
+                mre.Reset();
                 //Count should be 3
-                registry.HandleInput("unit-test", _key, (result, output) => { mre.Set(); });
+                registry.HandleInput("unit-test", _key, (result, output) => {mre.Set(); });
                 mre.WaitOne();
+                mre.Reset();
 
-                NumberContext retrieved = registry.RetrieveContext<NumberContext>(_key);
+                NumberContext retrieved = registry.Contexts.Retrieve(_key) as NumberContext;
 
                 //Ensure that context and retrieved actually map to the same objects with the same values
                 Assert.AreEqual(context["count"], retrieved["count"]);
