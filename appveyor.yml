@@ -21,7 +21,7 @@ deploy:
 - provider: NuGet
   artifact: /.*\.nupkg/
   api_key:
-    secure: 96GhxtmD79trmOMd7lU5p1fzp/ZGfZHTFSyxjP4CvUf5dc3zMEdZ1ztxjF5Pue6L
+    secure: LC37MGoOXB71KJDQYOtAvFH8qgJryFugtjgYs4FnJu31cUSegoaw0CT3PfRtTVsS
   on:
     appveyor_repo_tag: true        #Deploy when a tag is created
 
