@@ -1,0 +1,1 @@
+<Playlist Version="1.0"><Add Test="Research_And_Development_Core.RegexerTests.TestFlaggedMatching" /><Add Test="Research_And_Development_Core.CommandBuilderTests.TestCommandBuilder" /><Add Test="Research_And_Development_Core.RegexerTests.TestMatching" /><Add Test="Research_And_Development_Core.TestParameterBuilders.TestIntParameterBuilder" /></Playlist>
