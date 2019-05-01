@@ -14,17 +14,17 @@ namespace Research_And_Development_Core
         public async Task TestIntParameterBuilder()
         {
             await i32PB.BuildAsync("test");
-            Assert.IsTrue(i32PB.BuildState.Result == Headquarters_Core.Builders.BuildState<int>.Status.Faulted);
+            Assert.IsTrue(i32PB.BuildState.Result == Headquarters_Core.Builders.BuildStatus.Faulted);
             Assert.AreEqual(typeof(ArgumentException), i32PB.BuildState.Exception.GetType());
             i32PB.BuildState.Reset();
 
             await i32PB.BuildAsync("test", "string");
-            Assert.IsTrue(i32PB.BuildState.Result == Headquarters_Core.Builders.BuildState<int>.Status.Faulted);
+            Assert.IsTrue(i32PB.BuildState.Result == Headquarters_Core.Builders.BuildStatus.Faulted);
             Assert.AreEqual(typeof(ArgumentException), i32PB.BuildState.Exception.GetType());
             i32PB.BuildState.Reset();
 
             await i32PB.BuildAsync("1", "string");
-            Assert.IsTrue(i32PB.BuildState.Result == Headquarters_Core.Builders.BuildState<int>.Status.Faulted);
+            Assert.IsTrue(i32PB.BuildState.Result == Headquarters_Core.Builders.BuildStatus.Faulted);
             Assert.AreEqual(typeof(ArgumentException), i32PB.BuildState.Exception.GetType());
             i32PB.BuildState.Reset();
 

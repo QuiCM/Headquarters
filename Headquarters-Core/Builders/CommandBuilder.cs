@@ -19,6 +19,8 @@ namespace Headquarters_Core.Builders
         public IBuilderContext BuilderContext { get; set; }
         public BuildState<IEnumerable<CommandMetadata>> BuildState { get; set; }
 
+        public BuildStatus Status => BuildState.Result;
+
         /// <summary>
         /// Constructs a new CommandBuilder instance in the given context
         /// </summary>
@@ -37,6 +39,8 @@ namespace Headquarters_Core.Builders
         {
             return Task.Run(() =>
             {
+                BuildState.Reset();
+
                 if (Context.TryGetMetadata(hostType, out IEnumerable<CommandMetadata> metadata))
                 {
                     return BuildState.Succeed(metadata);
@@ -52,6 +56,16 @@ namespace Headquarters_Core.Builders
                          Method = methodInfo
                      }
                     ).ToList();
+
+                if (metadata.Count() < 1)
+                {
+                    return Fail(
+                        new BuildStateException(
+                            Constants.Exceptions.CommandBuilder.NoValidMetadataException,
+                            hostType
+                        )
+                    );
+                }
 
                 foreach (CommandMetadata metadatum in metadata)
                 {
@@ -78,13 +92,11 @@ namespace Headquarters_Core.Builders
             Context.GenerateCommandMatcher(metadatum);
         }
 
-        /// <summary>
-        /// CommandBuilder should not fail. Throws <see cref="NotImplementedException"/>
-        /// </summary>
-        /// <param name="e"></param>
-        public IEnumerable<CommandMetadata> Fail(Exception e)
+        public IEnumerable<CommandMetadata> Fail(Exception e) => BuildState.Fail(e);
+
+        private void OnFailedBuild(object sender, Exception e)
         {
-            throw new NotImplementedException();
+
         }
     }
 }
